@@ -1,0 +1,416 @@
+/* pages/points/history.wxss */
+
+.points-history-container {
+  background: linear-gradient(180deg, #ff6b35 0%, #f5f5f5 200rpx);
+  min-height: 100vh;
+  padding: 30rpx;
+}
+
+/* 页面标题 */
+.page-header {
+  text-align: center;
+  margin-bottom: 30rpx;
+  color: #ffffff;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.header-subtitle {
+  font-size: 24rpx;
+  opacity: 0.8;
+}
+
+/* 积分统计 */
+.points-stats {
+  margin-bottom: 30rpx;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10rpx);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx 30rpx 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.stats-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.refresh-btn {
+  padding: 8rpx;
+}
+
+.refresh-icon {
+  font-size: 28rpx;
+  color: #666;
+  transition: transform 0.5s ease;
+}
+
+.refresh-icon.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  padding: 20rpx 30rpx 30rpx;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+}
+
+.stat-number {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ff6b35;
+  margin-bottom: 8rpx;
+  font-family: 'DIN Alternate', 'PingFang SC', sans-serif;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #666;
+}
+
+/* 筛选器 */
+.filter-section {
+  margin-bottom: 20rpx;
+}
+
+.filter-tabs {
+  display: flex;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 6rpx;
+}
+
+.filter-tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 8rpx;
+  font-size: 26rpx;
+  border-radius: 8rpx;
+  transition: all 0.3s ease;
+  color: #666;
+}
+
+.filter-tab.active {
+  background: #ff6b35;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* 记录列表 */
+.records-section {
+  margin-bottom: 30rpx;
+}
+
+.points-record {
+  margin-bottom: 16rpx;
+  padding: 30rpx;
+  transition: all 0.3s ease;
+}
+
+.points-record:active {
+  background: #f8f9fa;
+  transform: scale(0.98);
+}
+
+.record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.record-source {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.source-icon {
+  font-size: 32rpx;
+  margin-right: 16rpx;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.source-icon.earn {
+  background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+  color: #ffffff;
+}
+
+.source-icon.spend {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8f65 100%);
+  color: #ffffff;
+}
+
+.source-icon.expired {
+  background: linear-gradient(135deg, #999 0%, #ccc 100%);
+  color: #ffffff;
+}
+
+.source-icon.adjust {
+  background: linear-gradient(135deg, #1989fa 0%, #40a9ff 100%);
+  color: #ffffff;
+}
+
+.source-details {
+  flex: 1;
+}
+
+.source-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.source-desc {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.record-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.record-body {
+  margin-bottom: 16rpx;
+}
+
+/* 积分变动展示 */
+.points-change-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.change-amount {
+  display: flex;
+  align-items: baseline;
+  flex: 1;
+}
+
+.change-amount.earn .change-sign,
+.change-amount.earn .change-value {
+  color: #52c41a;
+}
+
+.change-amount.spend .change-sign,
+.change-amount.spend .change-value {
+  color: #ff4d4f;
+}
+
+.change-sign {
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-right: 4rpx;
+}
+
+.change-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  font-family: 'DIN Alternate', 'PingFang SC', sans-serif;
+  margin-right: 8rpx;
+}
+
+.change-unit {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.balance-after {
+  text-align: right;
+}
+
+.balance-label {
+  font-size: 20rpx;
+  color: #666;
+  margin-bottom: 4rpx;
+}
+
+.balance-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  font-family: 'DIN Alternate', 'PingFang SC', sans-serif;
+}
+
+/* 关联支付信息 */
+.related-payment {
+  background: rgba(25, 137, 250, 0.05);
+  border-radius: 8rpx;
+  padding: 12rpx 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.related-label {
+  font-size: 20rpx;
+  color: #1989fa;
+  margin-bottom: 6rpx;
+}
+
+.related-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.related-merchant {
+  font-size: 24rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.related-amount {
+  font-size: 24rpx;
+  color: #1989fa;
+  font-weight: 600;
+}
+
+/* 过期信息 */
+.expiration-info {
+  background: #fff7e6;
+  border-radius: 8rpx;
+  padding: 8rpx 12rpx;
+  border-left: 4rpx solid #faad14;
+}
+
+.expiration-text {
+  font-size: 22rpx;
+  color: #d46b08;
+}
+
+.record-footer {
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.order-reference {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-label {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.order-number {
+  font-size: 20rpx;
+  color: #999;
+  font-family: 'Courier New', monospace;
+}
+
+/* 加载状态 */
+.loading-container {
+  text-align: center;
+  padding: 100rpx 30rpx;
+}
+
+.loading-spinner {
+  font-size: 48rpx;
+  margin-bottom: 20rpx;
+  animation: rotate 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+/* 空状态 */
+.empty-container {
+  text-align: center;
+  padding: 100rpx 30rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 30rpx;
+  opacity: 0.3;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+  font-weight: 500;
+}
+
+.empty-desc {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 40rpx;
+  line-height: 1.4;
+}
+
+/* 加载更多 */
+.load-more-section {
+  text-align: center;
+  padding: 30rpx 0;
+}
+
+.load-more-btn {
+  background: #f8f9fa;
+  color: #666;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 40rpx;
+  font-size: 28rpx;
+}
+
+.load-more-btn:disabled {
+  color: #ccc;
+}
+
+.no-more-section {
+  text-align: center;
+  padding: 30rpx 0;
+}
+
+.no-more-text {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+/* 通用按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8f65 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  padding: 20rpx 40rpx;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

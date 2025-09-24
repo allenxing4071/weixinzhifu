@@ -1,0 +1,133 @@
+<!--pages/payment/history.wxml-->
+<view class="history-container">
+  
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <view class="header-title">支付记录</view>
+    <view class="header-subtitle">查看您的所有支付记录和积分获得详情</view>
+  </view>
+
+  <!-- 统计概览 -->
+  <view class="stats-overview card">
+    <view class="stats-grid">
+      <view class="stat-item">
+        <view class="stat-value">{{totalOrders}}</view>
+        <view class="stat-label">总支付笔数</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">¥{{totalAmount}}</view>
+        <view class="stat-label">累计支付金额</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">{{totalPoints}}</view>
+        <view class="stat-label">累计获得积分</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-value">¥{{totalPointsValue}}</view>
+        <view class="stat-label">积分总价值</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 筛选器 -->
+  <view class="filter-section card">
+    <view class="filter-tabs">
+      <view 
+        wx:for="{{filterOptions}}" 
+        wx:key="value"
+        class="filter-tab {{currentFilter === item.value ? 'active' : ''}}"
+        bind:tap="switchFilter"
+        data-filter="{{item.value}}"
+      >
+        {{item.label}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付记录列表 -->
+  <view class="records-section">
+    
+    <!-- 加载状态 -->
+    <view wx:if="{{loading}}" class="loading-container">
+      <view class="loading-spinner">⏳</view>
+      <view class="loading-text">加载支付记录中...</view>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:elif="{{records.length === 0}}" class="empty-container card">
+      <view class="empty-icon">💳</view>
+      <view class="empty-title">暂无支付记录</view>
+      <view class="empty-desc">使用微信扫一扫支付后，记录将显示在这里</view>
+      <button class="btn-primary" bind:tap="goToPayment">去支付</button>
+    </view>
+    
+    <!-- 记录列表 -->
+    <view wx:else>
+      <view 
+        wx:for="{{records}}" 
+        wx:key="id"
+        class="payment-record card"
+        bind:tap="viewDetail"
+        data-record="{{item}}"
+      >
+        <view class="record-header">
+          <view class="merchant-info">
+            <view class="merchant-avatar">{{item.merchantIcon || '🏪'}}</view>
+            <view class="merchant-details">
+              <view class="merchant-name">{{item.merchantName}}</view>
+              <view class="payment-method">{{item.paymentMethod || '微信支付'}}</view>
+            </view>
+          </view>
+          <view class="record-time">{{item.formattedTime}}</view>
+        </view>
+        
+        <view class="record-body">
+          <view class="transaction-info">
+            <view class="order-no">订单号：{{item.orderNo}}</view>
+            <view class="transaction-desc">{{item.description}}</view>
+          </view>
+          
+          <view class="amount-points-display">
+            <view class="amount-section">
+              <view class="amount-label">支付金额</view>
+              <view class="amount-value">¥{{item.formattedAmount}}</view>
+            </view>
+            <view class="conversion-arrow">→</view>
+            <view class="points-section">
+              <view class="points-label">获得积分</view>
+              <view class="points-value">+{{item.pointsAwarded}}</view>
+            </view>
+          </view>
+        </view>
+        
+        <view class="record-footer">
+          <view class="status-info">
+            <view class="status-badge {{item.status}}">{{item.statusText}}</view>
+            <view class="completion-time">{{item.completedAt}}</view>
+          </view>
+          <view class="action-buttons">
+            <button wx:if="{{item.canRefund}}" class="btn-small btn-outline" bind:tap="requestRefund" data-order="{{item}}">申请退款</button>
+            <button class="btn-small btn-text" bind:tap="viewDetail" data-record="{{item}}">查看详情</button>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 加载更多 -->
+      <view wx:if="{{hasMore}}" class="load-more-section">
+        <button 
+          class="load-more-btn" 
+          bind:tap="loadMore"
+          disabled="{{loadingMore}}"
+        >
+          {{loadingMore ? '加载中...' : '加载更多'}}
+        </button>
+      </view>
+      
+      <!-- 没有更多 -->
+      <view wx:else class="no-more-section">
+        <view class="no-more-text">已显示全部记录</view>
+      </view>
+    </view>
+  </view>
+
+</view>

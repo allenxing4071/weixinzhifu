@@ -1,0 +1,13 @@
+{
+  "name": "points-system-test",
+  "version": "1.0.0",
+  "description": "积分系统测试工具",
+  "scripts": {
+    "test-server": "node test-server.js",
+    "test": "npm run test-server"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}

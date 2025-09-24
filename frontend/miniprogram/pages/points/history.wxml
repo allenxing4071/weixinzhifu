@@ -1,0 +1,145 @@
+<!--pages/points/history.wxml-->
+<view class="points-history-container">
+  
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <view class="header-title">积分记录</view>
+    <view class="header-subtitle">查看您的积分获得和使用明细</view>
+  </view>
+
+  <!-- 积分统计 -->
+  <view class="points-stats card">
+    <view class="stats-header">
+      <view class="stats-title">积分统计</view>
+      <view class="refresh-btn" bind:tap="refreshData">
+        <view class="refresh-icon {{refreshing ? 'rotating' : ''}}">🔄</view>
+      </view>
+    </view>
+    
+    <view class="stats-grid">
+      <view class="stat-card">
+        <view class="stat-number">{{pointsStats.currentBalance}}</view>
+        <view class="stat-label">当前余额</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-number">{{pointsStats.totalEarned}}</view>
+        <view class="stat-label">累计获得</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-number">{{pointsStats.totalSpent}}</view>
+        <view class="stat-label">累计使用</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-number">{{pointsStats.expiringPoints}}</view>
+        <view class="stat-label">即将过期</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 筛选器 -->
+  <view class="filter-section card">
+    <view class="filter-tabs">
+      <view 
+        wx:for="{{filterOptions}}" 
+        wx:key="value"
+        class="filter-tab {{currentFilter === item.value ? 'active' : ''}}"
+        bind:tap="switchFilter"
+        data-filter="{{item.value}}"
+      >
+        {{item.label}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 积分记录列表 -->
+  <view class="records-section">
+    
+    <!-- 加载状态 -->
+    <view wx:if="{{loading}}" class="loading-container">
+      <view class="loading-spinner">⭐</view>
+      <view class="loading-text">加载积分记录中...</view>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:elif="{{records.length === 0}}" class="empty-container card">
+      <view class="empty-icon">🎁</view>
+      <view class="empty-title">暂无积分记录</view>
+      <view class="empty-desc">使用微信支付后，积分记录将显示在这里</view>
+      <button class="btn-primary" bind:tap="goToPayment">去消费赚积分</button>
+    </view>
+    
+    <!-- 记录列表 -->
+    <view wx:else>
+      <view 
+        wx:for="{{records}}" 
+        wx:key="id"
+        class="points-record card"
+        bind:tap="viewDetail"
+        data-record="{{item}}"
+      >
+        <view class="record-header">
+          <view class="record-source">
+            <view class="source-icon {{item.type}}">{{item.sourceIcon}}</view>
+            <view class="source-details">
+              <view class="source-name">{{item.sourceName}}</view>
+              <view class="source-desc">{{item.description}}</view>
+            </view>
+          </view>
+          <view class="record-time">{{item.formattedTime}}</view>
+        </view>
+        
+        <view class="record-body">
+          <view class="points-change-display">
+            <view class="change-amount {{item.changeType}}">
+              <view class="change-sign">{{item.changeType === 'earn' ? '+' : '-'}}</view>
+              <view class="change-value">{{item.pointsChange}}</view>
+              <view class="change-unit">积分</view>
+            </view>
+            <view class="balance-after">
+              <view class="balance-label">余额</view>
+              <view class="balance-value">{{item.balanceAfter}}</view>
+            </view>
+          </view>
+          
+          <!-- 关联支付信息 -->
+          <view wx:if="{{item.relatedPayment}}" class="related-payment">
+            <view class="related-label">关联支付</view>
+            <view class="related-info">
+              <view class="related-merchant">{{item.relatedPayment.merchantName}}</view>
+              <view class="related-amount">¥{{item.relatedPayment.amount}}</view>
+            </view>
+          </view>
+          
+          <!-- 过期信息 -->
+          <view wx:if="{{item.expirationInfo}}" class="expiration-info">
+            <view class="expiration-text">{{item.expirationInfo}}</view>
+          </view>
+        </view>
+        
+        <view wx:if="{{item.orderNo}}" class="record-footer">
+          <view class="order-reference">
+            <view class="order-label">关联订单</view>
+            <view class="order-number">{{item.orderNo}}</view>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 加载更多 -->
+      <view wx:if="{{hasMore}}" class="load-more-section">
+        <button 
+          class="load-more-btn" 
+          bind:tap="loadMore"
+          disabled="{{loadingMore}}"
+        >
+          {{loadingMore ? '加载中...' : '加载更多'}}
+        </button>
+      </view>
+      
+      <!-- 没有更多 -->
+      <view wx:else class="no-more-section">
+        <view class="no-more-text">已显示全部记录</view>
+      </view>
+    </view>
+  </view>
+
+</view>

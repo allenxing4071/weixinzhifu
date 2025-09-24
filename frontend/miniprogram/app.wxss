@@ -1,0 +1,93 @@
+/**app.wxss**/
+
+/* 全局样式 */
+page {
+  background-color: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', SimSun, sans-serif;
+}
+
+/* 底部导航栏文字大小调整 */
+.wx-tabbar-item {
+  font-size: 16px !important;
+}
+
+/* 通用卡片样式 */
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10rpx);
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 通用按钮样式 */
+.btn-primary {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8f65 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  padding: 20rpx 40rpx;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background: #f8f9fa;
+  color: #666;
+  border: 2rpx solid #e9ecef;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  padding: 18rpx 36rpx;
+}
+
+.btn-secondary:active {
+  background: #e9ecef;
+}
+
+/* 通用布局 */
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-align-center {
+  display: flex;
+  align-items: center;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 通用间距 */
+.mt-10 { margin-top: 10rpx; }
+.mt-20 { margin-top: 20rpx; }
+.mt-30 { margin-top: 30rpx; }
+.mb-10 { margin-bottom: 10rpx; }
+.mb-20 { margin-bottom: 20rpx; }
+.mb-30 { margin-bottom: 30rpx; }
+
+/* 通用文字样式 */
+.text-primary { color: #ff6b35; }
+.text-secondary { color: #666; }
+.text-muted { color: #999; }
+.text-success { color: #52c41a; }
+.text-warning { color: #faad14; }
+.text-danger { color: #ff4d4f; }
+
+.font-bold { font-weight: 600; }
+.font-normal { font-weight: 400; }
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }

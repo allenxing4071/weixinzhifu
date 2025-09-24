@@ -1,0 +1,73 @@
+# 依赖文件
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 环境配置文件（包含敏感信息）
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# 日志文件
+logs/
+*.log
+
+# 构建产物
+dist/
+build/
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+*.tmp
+
+# 系统文件
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 部署文件
+deploy-*/
+*deploy*.tar.gz
+guandongfang-deploy-*/
+
+# 额外排除（敏感/大文件/仅本地部署用）
+back/
+production-final.env
+DEPLOYMENT_STATUS.md
+points-system-latest.zip
+guandongfang-points.tar.gz
+weixinpay.pem
+nginx-guandongfang.conf
+pm2-guandongfang.config.js
+backend/config.env
+
+# 开发工具
+.eslintcache
+*.swp
+*.swo
+*~
+
+# 微信开发者工具
+miniprogram/sitemap*.json
+
+# 测试覆盖率
+coverage/
+
+# 备份文件
+*.bak
+*.backup
+
+# 证书文件
+certs/
+*.cert
+*.crt
+
+# 数据库备份
+*.sql.backup
+*.dump

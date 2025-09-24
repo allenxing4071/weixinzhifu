@@ -1,0 +1,138 @@
+<!--payment/index.wxml - 完全仿微信支付界面+数字键盘-->
+<view class="payment-container">
+  
+  <!-- 顶部导航栏（完全仿微信） -->
+  <view class="navbar">
+    <view class="nav-back" bind:tap="goBack">
+      <view class="back-icon">‹</view>
+    </view>
+    <view class="nav-title">付款</view>
+    <view class="nav-placeholder"></view>
+  </view>
+
+  <!-- 主要内容区域 -->
+  <view class="main-content">
+    
+    <!-- 收款方信息（完全仿微信） -->
+    <view class="payee-section">
+      <view class="payee-label">付款给个人</view>
+      <view class="payee-info">
+        <image class="payee-avatar" src="{{merchantInfo.avatar || '/images/default-merchant.png'}}"></image>
+        <view class="payee-details">
+          <view class="payee-name">{{merchantInfo.name || '数谷异联科技'}}</view>
+          <view class="payee-subtitle">{{merchantInfo.desc || '(**龙)'}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 金额显示区（完全仿微信） -->
+    <view class="amount-display-section">
+      <view class="amount-label">金额</view>
+      <view class="amount-display">
+        <text class="currency-symbol">¥</text>
+        <text class="amount-value">{{displayAmount || ''}}</text>
+      </view>
+      
+      <!-- 积分规则巧妙提示（不影响微信体验） -->
+      <view wx:if="{{displayAmount}}" class="points-rule-hint">
+        💡 支付后获得{{expectedPoints}}积分（1元=1积分）
+      </view>
+    </view>
+
+    <!-- 积分规则展示区（替代备注位置，吸引用户关注） -->
+    <view class="points-rules-section">
+      <view class="rules-title">🎁 积分奖励规则</view>
+      
+      <view class="rules-list">
+        <view class="rule-item">
+          <view class="rule-icon">✓</view>
+          <view class="rule-text">支付成功后立即获得等额积分</view>
+        </view>
+        
+        <view class="rule-item highlight">
+          <view class="rule-icon">💰</view>
+          <view class="rule-text">1元 = 1积分 = 1元价值</view>
+        </view>
+        
+        <view class="rule-item">
+          <view class="rule-icon">🏬</view>
+          <view class="rule-text">积分可在积分商城直接使用</view>
+        </view>
+        
+        <view wx:if="{{displayAmount}}" class="rule-item special">
+          <view class="rule-icon">🎉</view>
+          <view class="rule-text">本次支付将获得 <text class="points-highlight">{{expectedPoints}}积分</text></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 数字键盘+付款按钮（完全仿微信） -->
+  <view class="keyboard-container">
+    <view class="keyboard-grid">
+      <view class="key-row">
+        <view class="number-key" bind:tap="inputNumber" data-num="1">1</view>
+        <view class="number-key" bind:tap="inputNumber" data-num="2">2</view>
+        <view class="number-key" bind:tap="inputNumber" data-num="3">3</view>
+      </view>
+      <view class="key-row">
+        <view class="number-key" bind:tap="inputNumber" data-num="4">4</view>
+        <view class="number-key" bind:tap="inputNumber" data-num="5">5</view>
+        <view class="number-key" bind:tap="inputNumber" data-num="6">6</view>
+      </view>
+      <view class="key-row">
+        <view class="number-key" bind:tap="inputNumber" data-num="7">7</view>
+        <view class="number-key" bind:tap="inputNumber" data-num="8">8</view>
+        <view class="number-key" bind:tap="inputNumber" data-num="9">9</view>
+      </view>
+      <view class="key-row">
+        <view class="number-key empty-key"></view>
+        <view class="number-key" bind:tap="inputNumber" data-num="0">0</view>
+        <view class="number-key" bind:tap="inputDot">.</view>
+      </view>
+    </view>
+    
+    <!-- 删除键 -->
+    <view class="delete-key" bind:tap="deleteNumber">
+      <view class="delete-icon">×</view>
+    </view>
+    
+    <!-- 付款按钮（微信绿色） -->
+    <view class="pay-button-container">
+      <button 
+        class="pay-button {{canPay ? 'enabled' : 'disabled'}}"
+        bind:tap="handlePayment"
+        disabled="{{!canPay}}"
+      >
+        {{paying ? '支付中...' : '付款'}}
+      </button>
+    </view>
+  </view>
+
+</view>
+
+<!-- 积分到账动画（支付成功后） -->
+<view wx:if="{{showPointsAnimation}}" class="points-animation-overlay">
+  <view class="points-animation-content">
+    <view class="points-icon-large">🎉</view>
+    <view class="points-animation-text">{{pointsAnimationText}}</view>
+    <view class="points-subtitle">正在跳转到积分页面...</view>
+    <view class="points-rain">
+      <view class="rain-particle" wx:for="{{[1,2,3,4,5,6,7,8]}}" wx:key="*this">+</view>
+    </view>
+  </view>
+</view>
+
+<!-- 支付成功弹窗 -->
+<view wx:if="{{showSuccessModal}}" class="success-modal">
+  <view class="success-content">
+    <view class="success-icon">✅</view>
+    <view class="success-title">支付成功</view>
+    <view class="success-amount">¥{{formattedAmount}}</view>
+    <view class="success-points">
+      <view class="points-label">获得积分</view>
+      <view class="points-value">+{{awardedPoints}}</view>
+    </view>
+  </view>
+  <view class="modal-overlay" bind:tap="closeSuccessModal"></view>
+</view>

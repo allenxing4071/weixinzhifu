@@ -1,0 +1,359 @@
+/* pages/payment/history.wxss */
+
+.history-container {
+  background: linear-gradient(180deg, #1989fa 0%, #f5f5f5 200rpx);
+  min-height: 100vh;
+  padding: 30rpx;
+}
+
+/* 页面标题 */
+.page-header {
+  text-align: center;
+  margin-bottom: 30rpx;
+  color: #ffffff;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.header-subtitle {
+  font-size: 24rpx;
+  opacity: 0.8;
+}
+
+/* 统计概览 */
+.stats-overview {
+  margin-bottom: 30rpx;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10rpx);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  padding: 30rpx;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1989fa;
+  margin-bottom: 8rpx;
+  font-family: 'DIN Alternate', 'PingFang SC', sans-serif;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* 筛选器 */
+.filter-section {
+  margin-bottom: 20rpx;
+}
+
+.filter-tabs {
+  display: flex;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 6rpx;
+}
+
+.filter-tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 12rpx;
+  font-size: 28rpx;
+  border-radius: 8rpx;
+  transition: all 0.3s ease;
+  color: #666;
+}
+
+.filter-tab.active {
+  background: #1989fa;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* 记录列表 */
+.records-section {
+  margin-bottom: 30rpx;
+}
+
+.payment-record {
+  margin-bottom: 16rpx;
+  padding: 30rpx;
+  transition: all 0.3s ease;
+}
+
+.payment-record:active {
+  background: #f8f9fa;
+  transform: scale(0.98);
+}
+
+.record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.merchant-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.merchant-avatar {
+  font-size: 32rpx;
+  margin-right: 16rpx;
+  width: 60rpx;
+  height: 60rpx;
+  background: #f5f5f5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.merchant-details {
+  flex: 1;
+}
+
+.merchant-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 4rpx;
+}
+
+.payment-method {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.record-time {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.record-body {
+  margin-bottom: 20rpx;
+}
+
+.transaction-info {
+  margin-bottom: 16rpx;
+}
+
+.order-no {
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+  font-family: 'Courier New', monospace;
+}
+
+.transaction-desc {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 金额积分对比展示 */
+.amount-points-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.amount-section,
+.points-section {
+  text-align: center;
+  flex: 1;
+}
+
+.amount-label,
+.points-label {
+  font-size: 22rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+.amount-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+  font-family: 'DIN Alternate', 'PingFang SC', sans-serif;
+}
+
+.points-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #52c41a;
+  font-family: 'DIN Alternate', 'PingFang SC', sans-serif;
+}
+
+.conversion-arrow {
+  font-size: 24rpx;
+  color: #1989fa;
+  font-weight: 600;
+  margin: 0 20rpx;
+}
+
+.record-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-info {
+  flex: 1;
+}
+
+.status-badge {
+  font-size: 22rpx;
+  padding: 6rpx 12rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 6rpx;
+}
+
+.status-badge.success {
+  background: rgba(82, 196, 26, 0.1);
+  color: #52c41a;
+}
+
+.status-badge.pending {
+  background: rgba(250, 140, 22, 0.1);
+  color: #fa8c16;
+}
+
+.status-badge.failed {
+  background: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+}
+
+.completion-time {
+  font-size: 20rpx;
+  color: #ccc;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12rpx;
+}
+
+.btn-small {
+  font-size: 24rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  border: none;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #ff4d4f;
+  border: 1rpx solid #ff4d4f;
+}
+
+.btn-text {
+  background: transparent;
+  color: #1989fa;
+}
+
+/* 加载状态 */
+.loading-container {
+  text-align: center;
+  padding: 100rpx 30rpx;
+}
+
+.loading-spinner {
+  font-size: 48rpx;
+  margin-bottom: 20rpx;
+  animation: rotate 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+/* 空状态 */
+.empty-container {
+  text-align: center;
+  padding: 100rpx 30rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 30rpx;
+  opacity: 0.3;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+  font-weight: 500;
+}
+
+.empty-desc {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 40rpx;
+  line-height: 1.4;
+}
+
+/* 加载更多 */
+.load-more-section {
+  text-align: center;
+  padding: 30rpx 0;
+}
+
+.load-more-btn {
+  background: #f8f9fa;
+  color: #666;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 40rpx;
+  font-size: 28rpx;
+}
+
+.load-more-btn:disabled {
+  color: #ccc;
+}
+
+.no-more-section {
+  text-align: center;
+  padding: 30rpx 0;
+}
+
+.no-more-text {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+/* 通用按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, #1989fa 0%, #40a9ff 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  padding: 20rpx 40rpx;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
