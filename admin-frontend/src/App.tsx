@@ -244,7 +244,7 @@ const UsersPage: React.FC = () => {
 
 // 新版商户管理页面 - 使用新的商户CRUD API
 const MerchantsPage: React.FC = () => {
-  const [merchants, setMerchants] = useState([])
+  const [merchants, setMerchants] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
   const [qrModalVisible, setQrModalVisible] = useState(false)
@@ -472,6 +472,196 @@ const MerchantsPage: React.FC = () => {
     } finally {
       setBatchLoading(false)
     }
+  }
+
+  // 批量状态修改
+  const handleBatchStatusChange = async (newStatus: 'active' | 'inactive') => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请选择要修改状态的商户')
+      return
+    }
+
+    const selectedMerchants = merchants.filter((merchant: any) => 
+      selectedRowKeys.includes(merchant.id)
+    )
+    const action = newStatus === 'active' ? '激活' : '禁用'
+
+    Modal.confirm({
+      title: `批量${action}确认`,
+      content: (
+        <div>
+          <p>确定要{action}以下 <strong>{selectedRowKeys.length}</strong> 个商户吗？</p>
+          <div style={{ 
+            maxHeight: '200px', 
+            overflow: 'auto', 
+            background: '#f5f5f5', 
+            padding: '8px 12px', 
+            borderRadius: '4px',
+            margin: '8px 0'
+          }}>
+            {selectedMerchants.map((merchant: any, index: number) => (
+              <div key={merchant.id} style={{ marginBottom: '4px' }}>
+                {index + 1}. {merchant.merchantName} (当前状态: {merchant.status})
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+      okText: `确定${action}`,
+      cancelText: '取消',
+      onOk: async () => {
+        setBatchLoading(true)
+        try {
+          console.log(`🔄 开始批量${action}商户:`, selectedRowKeys)
+          
+          const updatePromises = selectedRowKeys.map(merchantId => 
+            apiRequest(`/admin/merchants/${merchantId}`, {
+              method: 'PUT',
+              body: JSON.stringify({ status: newStatus })
+            })
+          )
+          
+          const results = await Promise.allSettled(updatePromises)
+          
+          let successCount = 0
+          let failureCount = 0
+          
+          results.forEach((result) => {
+            if (result.status === 'fulfilled' && result.value.success) {
+              successCount++
+            } else {
+              failureCount++
+            }
+          })
+          
+          if (successCount > 0 && failureCount === 0) {
+            message.success(`✅ 批量${action}成功！共${action} ${successCount} 个商户`)
+          } else if (successCount > 0 && failureCount > 0) {
+            message.warning(`⚠️ 部分${action}成功：${successCount} 个成功，${failureCount} 个失败`)
+          } else {
+            message.error(`❌ 批量${action}失败！`)
+          }
+          
+          setSelectedRowKeys([])
+          loadMerchants()
+          
+        } catch (error) {
+          console.error(`Batch ${action} error:`, error)
+          message.error(`批量${action}异常`)
+        } finally {
+          setBatchLoading(false)
+        }
+      }
+    })
+  }
+
+  // 批量删除商户
+  const handleBatchDelete = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请选择要删除的商户')
+      return
+    }
+
+    // 获取选中商户的名称用于确认对话框
+    const selectedMerchants = merchants.filter((merchant: any) => 
+      selectedRowKeys.includes(merchant.id)
+    )
+
+    Modal.confirm({
+      title: '批量删除确认',
+      content: (
+        <div>
+          <p>确定要删除以下 <strong>{selectedRowKeys.length}</strong> 个商户吗？</p>
+          <div style={{ 
+            maxHeight: '200px', 
+            overflow: 'auto', 
+            background: '#f5f5f5', 
+            padding: '8px 12px', 
+            borderRadius: '4px',
+            margin: '8px 0'
+          }}>
+            {selectedMerchants.map((merchant: any, index: number) => (
+              <div key={merchant.id} style={{ marginBottom: '4px' }}>
+                {index + 1}. {merchant.merchantName} ({merchant.contactPerson})
+              </div>
+            ))}
+          </div>
+          <p style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
+            ⚠️ 此操作不可恢复，请谨慎操作！
+          </p>
+        </div>
+      ),
+      okText: '确定删除',
+      cancelText: '取消',
+      okType: 'danger',
+      width: 500,
+      onOk: async () => {
+        setBatchLoading(true)
+        try {
+          console.log('🗑️ 开始批量删除商户:', selectedRowKeys)
+          
+          // 并发删除所有选中的商户
+          const deletePromises = selectedRowKeys.map(merchantId => 
+            apiRequest(`/admin/merchants/${merchantId}`, {
+              method: 'DELETE'
+            })
+          )
+          
+          const results = await Promise.allSettled(deletePromises)
+          
+          // 统计成功和失败的数量
+          let successCount = 0
+          let failureCount = 0
+          const failedMerchants: string[] = []
+          
+          results.forEach((result, index) => {
+            if (result.status === 'fulfilled' && result.value.success) {
+              successCount++
+            } else {
+              failureCount++
+              const merchant = selectedMerchants[index]
+              if (merchant && merchant.merchantName) {
+                failedMerchants.push(merchant.merchantName)
+              }
+            }
+          })
+          
+          // 显示结果消息
+          if (successCount > 0 && failureCount === 0) {
+            message.success(`✅ 批量删除成功！共删除 ${successCount} 个商户`)
+          } else if (successCount > 0 && failureCount > 0) {
+            message.warning(`⚠️ 部分删除成功：${successCount} 个成功，${failureCount} 个失败`)
+            if (failedMerchants.length > 0) {
+              Modal.warning({
+                title: '删除失败的商户',
+                content: (
+                  <div>
+                    <p>以下商户删除失败：</p>
+                    <ul>
+                      {failedMerchants.map(name => (
+                        <li key={name}>{name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })
+            }
+          } else {
+            message.error(`❌ 批量删除失败！${failureCount} 个商户删除失败`)
+          }
+          
+          // 清空选择并重新加载数据
+          setSelectedRowKeys([])
+          loadMerchants()
+          
+        } catch (error) {
+          console.error('Batch delete error:', error)
+          message.error('批量删除异常')
+        } finally {
+          setBatchLoading(false)
+        }
+      }
+    })
   }
 
   const downloadQRCode = () => {
@@ -785,15 +975,51 @@ const MerchantsPage: React.FC = () => {
             >
               新增商户
             </Button>
-            <Button 
-              icon={<QrcodeOutlined />}
-              onClick={handleBatchGenerateQR}
-              loading={batchLoading}
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'batch-qrcode',
+                    label: '批量生成二维码',
+                    icon: <QrcodeOutlined />,
+                    onClick: handleBatchGenerateQR,
+                    disabled: selectedRowKeys.length === 0
+                  },
+                  {
+                    key: 'batch-activate',
+                    label: '批量激活',
+                    onClick: () => handleBatchStatusChange('active'),
+                    disabled: selectedRowKeys.length === 0
+                  },
+                  {
+                    key: 'batch-deactivate',
+                    label: '批量禁用',
+                    onClick: () => handleBatchStatusChange('inactive'),
+                    disabled: selectedRowKeys.length === 0
+                  },
+                  {
+                    type: 'divider'
+                  },
+                  {
+                    key: 'batch-delete',
+                    label: '批量删除',
+                    danger: true,
+                    onClick: handleBatchDelete,
+                    disabled: selectedRowKeys.length === 0
+                  }
+                ]
+              }}
               disabled={selectedRowKeys.length === 0}
-              style={{ marginRight: 8 }}
+              trigger={['click']}
             >
-              批量生成二维码 ({selectedRowKeys.length})
-            </Button>
+              <Button 
+                loading={batchLoading}
+                disabled={selectedRowKeys.length === 0}
+                style={{ marginRight: 8 }}
+              >
+                批量操作 ({selectedRowKeys.length}) ▼
+              </Button>
+            </Dropdown>
             <Button 
               onClick={loadMerchants}
               loading={loading}
