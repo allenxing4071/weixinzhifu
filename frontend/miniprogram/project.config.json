@@ -15,6 +15,7 @@
   },
   "setting": {
     "urlCheck": false,
+    "checkSiteMap": false,
     "es6": true,
     "enhance": true,
     "postcss": true,

@@ -337,12 +337,13 @@ const MerchantsPage: React.FC = () => {
   }
 
   // 生成单个商户二维码
-  const generateQRCode = async (merchant: any, amount: number = 50) => {
+  const generateQRCode = async (merchant: any, amount?: number) => {
     setQrLoading(true)
     try {
+      const requestBody = amount ? { fixedAmount: amount } : {}
       const result = await apiRequest(`/admin/merchants/${merchant.merchantId || merchant.id}/qrcode`, {
         method: 'POST',
-        body: JSON.stringify({ fixedAmount: amount })
+        body: JSON.stringify(requestBody)
       })
 
       if (result.success) {
@@ -362,7 +363,7 @@ const MerchantsPage: React.FC = () => {
   const handleGenerateQR = (merchant: any) => {
     setSelectedMerchant(merchant)
     setQrModalVisible(true)
-    generateQRCode(merchant, 50)
+    generateQRCode(merchant)
   }
 
   // 查看商户详情
@@ -456,7 +457,7 @@ const MerchantsPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           merchantIds: selectedRowKeys,
-          fixedAmount: 50
+          qrType: 'standard'
         })
       })
       
@@ -932,7 +933,7 @@ const MerchantsPage: React.FC = () => {
       setSelectedRowKeys(newSelectedRowKeys as string[])
     },
     getCheckboxProps: (record: any) => ({
-      disabled: record.status !== '已完成'
+      disabled: record.status !== 'active' // 只有激活状态的商户才能被选中
     })
   }
 
@@ -1162,9 +1163,9 @@ const MerchantsPage: React.FC = () => {
                 style={{ width: 200, height: 200 }}
               />
             </div>
-            <p style={{ color: '#666', fontSize: '14px' }}>
-              扫码支付金额: ¥{qrCodeData.amount || '50.00'}
-            </p>
+                 <p style={{ color: '#666', fontSize: '14px' }}>
+                   扫码支付: 用户自定义金额
+                 </p>
             <p style={{ color: '#999', fontSize: '12px' }}>
               二维码类型: {qrCodeData.qrType === 'miniprogram' ? '微信小程序码' : '标准二维码'}
             </p>

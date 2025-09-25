@@ -3,7 +3,7 @@ App({
   globalData: {
     userInfo: null,  // 生产环境：用户信息由登录获取
     token: null,     // 生产环境：token由登录获取
-    baseUrl: 'https://8.156.84.226/api/v1',  // 生产环境API地址
+    baseUrl: 'http://8.156.84.226/api/v1',   // 开发环境API地址（HTTP）
     version: '1.0.0',
     productionMode: true,   // 正式环境模式
     demoMode: false,        // 关闭演示模式，使用真实数据

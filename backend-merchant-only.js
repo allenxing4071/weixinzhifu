@@ -47,47 +47,107 @@ async function initDatabase() {
   }
 }
 
-// 模拟数据
+// 真实商户数据（从用户提供的微信支付商户数据）
 let mockMerchants = [
   {
-    id: 'merchant_1735113600_abc123',
+    id: 'merchant_real_001',
     merchant_name: '仁寿县怀仁街道云锦汇会所（个体工商户）',
-    merchant_no: 'M35113600',
+    merchant_no: 'M001',
     contact_person: '刘阳',
     contact_phone: '13800138001',
     business_license: '91512345MA6CXXX001',
     status: 'active',
     qr_code: null,
-    sub_mch_id: '1728001633',
+    sub_mch_id: '1728001633', // 真实的特约商户号
     total_amount: 0,
     total_orders: 0,
-    applyment_id: '2000002691156098',
+    applyment_id: '2000002691156098', // 真实的申请单号
     merchant_type: 'INDIVIDUAL',
     contact_email: 'liuyang@example.com',
-    legal_person: null,
+    legal_person: '刘阳',
     business_category: '休闲娱乐',
     created_at: new Date('2024-10-01T08:00:00.000Z'),
-    updated_at: new Date('2024-10-05T10:00:00.000Z')
+    updated_at: new Date('2024-12-25T10:00:00.000Z')
   },
   {
-    id: 'merchant_1735113700_def456',
-    merchant_name: '成都市中鑫博海国际酒业贸易有限公司',
-    merchant_no: 'M35113700',
-    contact_person: '邢海龙',
-    contact_phone: '13800138004',
-    business_license: '91512345MA6CXXX004',
+    id: 'merchant_real_002',
+    merchant_name: '仁寿县怀仁街道储府鱼庄店（个体工商户）',
+    merchant_no: 'M002',
+    contact_person: '刘阳',
+    contact_phone: '13800138002',
+    business_license: '91512345MA6CXXX002',
     status: 'active',
     qr_code: null,
-    sub_mch_id: '1727774152',
-    total_amount: 15800.50,
-    total_orders: 12,
-    applyment_id: '2000002690164951',
+    sub_mch_id: '1727952181', // 真实的特约商户号
+    total_amount: 0,
+    total_orders: 0,
+    applyment_id: '2000002690858917', // 真实的申请单号
+    merchant_type: 'INDIVIDUAL',
+    contact_email: 'liuyang@example.com',
+    legal_person: '刘阳',
+    business_category: '餐饮',
+    created_at: new Date('2024-10-01T08:00:00.000Z'),
+    updated_at: new Date('2024-12-25T10:00:00.000Z')
+  },
+  {
+    id: 'merchant_real_003',
+    merchant_name: '仁寿县怀仁街道颐善滋养园养生馆（个体工商户）',
+    merchant_no: 'M003',
+    contact_person: '刘阳',
+    contact_phone: '13800138003',
+    business_license: '91512345MA6CXXX003',
+    status: 'active',
+    qr_code: null,
+    sub_mch_id: '1727857063', // 真实的特约商户号
+    total_amount: 0,
+    total_orders: 0,
+    applyment_id: '2000002690623402', // 真实的申请单号
+    merchant_type: 'INDIVIDUAL',
+    contact_email: 'liuyang@example.com',
+    legal_person: '刘阳',
+    business_category: '休闲娱乐',
+    created_at: new Date('2024-10-01T08:00:00.000Z'),
+    updated_at: new Date('2024-12-25T10:00:00.000Z')
+  },
+  {
+    id: 'merchant_real_004',
+    merchant_name: '成都市中鑫博海国际酒业贸易有限公司',
+    merchant_no: 'M004',
+    contact_person: '邢海龙',
+    contact_phone: '13800138004',
+    business_license: '91510100MA6CXXX004',
+    status: 'active',
+    qr_code: null,
+    sub_mch_id: '1727774152', // 真实的特约商户号
+    total_amount: 0,
+    total_orders: 0,
+    applyment_id: '2000002690164951', // 真实的申请单号
     merchant_type: 'ENTERPRISE',
-    contact_email: 'xinghailong@zhongxinbohai.com',
+    contact_email: 'xinghailong@example.com',
     legal_person: '邢海龙',
-    business_category: '酒类贸易',
-    created_at: new Date('2024-10-04T08:00:00.000Z'),
-    updated_at: new Date('2024-10-08T10:00:00.000Z')
+    business_category: '食品保健',
+    created_at: new Date('2024-10-02T08:00:00.000Z'),
+    updated_at: new Date('2024-12-25T10:00:00.000Z')
+  },
+  {
+    id: 'merchant_real_005',
+    merchant_name: '德阳市叁思科技有限公司',
+    merchant_no: 'M005',
+    contact_person: '赵其军',
+    contact_phone: '13800138005',
+    business_license: '91510600MA6CXXX005',
+    status: 'active',
+    qr_code: null,
+    sub_mch_id: '1727565030', // 真实的特约商户号
+    total_amount: 0,
+    total_orders: 0,
+    applyment_id: '2000002689372247', // 真实的申请单号
+    merchant_type: 'ENTERPRISE',
+    contact_email: 'zhaoqijun@example.com',
+    legal_person: '赵其军',
+    business_category: '科技服务',
+    created_at: new Date('2024-10-03T08:00:00.000Z'),
+    updated_at: new Date('2024-12-25T10:00:00.000Z')
   }
 ]
 

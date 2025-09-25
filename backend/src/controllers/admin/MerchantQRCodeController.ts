@@ -39,8 +39,8 @@ export class MerchantQRCodeController {
       
       // 3. 根据类型生成不同的二维码
       if (qrType === 'miniprogram') {
-        // 生成小程序扫码二维码
-        qrCodeResult = await MerchantQRCodeService.generateMerchantQRCode(
+        // 生成微信小程序码（推荐）
+        qrCodeResult = await MerchantQRCodeService.generateMiniProgramCode(
           merchantId,
           merchant.subMchId,
           fixedAmount ? Math.round(fixedAmount * 100) : undefined
@@ -62,11 +62,12 @@ export class MerchantQRCodeController {
           `${merchant.merchantName}收款`
         )
       } else {
-        res.status(400).json({
-          success: false,
-          message: '不支持的二维码类型'
-        })
-        return
+        // 默认生成标准二维码（不带固定金额）
+        qrCodeResult = await MerchantQRCodeService.generateQRCode(
+          merchantId,
+          merchant.subMchId,
+          fixedAmount ? Math.round(fixedAmount * 100) : undefined
+        )
       }
       
       // 4. 返回二维码（Base64格式）

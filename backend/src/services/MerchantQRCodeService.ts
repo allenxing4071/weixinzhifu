@@ -1,12 +1,67 @@
 import QRCode from 'qrcode'
 import crypto from 'crypto'
 import { config } from '../config/index'
+import { WechatMiniProgramService } from './WechatMiniProgramService'
 
 /**
  * 商户二维码生成服务
  * 基于微信支付服务商模式为特约商户生成支付二维码
  */
 export class MerchantQRCodeService {
+  
+  /**
+   * 生成微信小程序码（推荐使用）
+   * @param merchantId 商户ID
+   * @param subMchId 特约商户号
+   * @param fixedAmount 固定金额（分，可选）
+   * @returns 小程序码图片缓冲区和相关信息
+   */
+  static async generateMiniProgramCode(
+    merchantId: string,
+    subMchId: string,
+    fixedAmount?: number
+  ): Promise<{
+    qrCodeBuffer: Buffer
+    qrCodeUrl: string
+    qrCodeData: string
+    expiresAt: Date
+  }> {
+    try {
+      console.log('🎯 开始生成微信小程序码...')
+      
+      // 1. 生成真正的微信小程序码
+      const qrCodeBuffer = await WechatMiniProgramService.generatePaymentQRCode(
+        merchantId,
+        subMchId,
+        fixedAmount
+      )
+      
+      // 2. 生成二维码数据（页面路径格式）
+      const qrCodeData = this.buildMiniProgramPath(merchantId, subMchId, fixedAmount)
+      
+      // 3. 构建访问URL（用于分享链接）
+      const qrCodeUrl = this.buildMiniProgramUrl(merchantId, subMchId, fixedAmount)
+      
+      // 4. 设置二维码有效期（24小时）
+      const expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + 24)
+      
+      console.log('✅ 微信小程序码生成成功')
+      
+      return {
+        qrCodeBuffer,
+        qrCodeUrl,
+        qrCodeData,
+        expiresAt
+      }
+      
+    } catch (error) {
+      console.error('生成微信小程序码失败:', error)
+      // 如果小程序码生成失败，回退到普通二维码
+      console.log('🔄 回退到普通二维码生成...')
+      return await this.generateQRCode(merchantId, subMchId, fixedAmount)
+    }
+  }
   
   /**
    * 为商户生成支付二维码
@@ -85,7 +140,24 @@ export class MerchantQRCodeService {
   }
   
   /**
-   * 构建小程序访问URL（用于分享和链接）
+   * 构建小程序页面路径（用于小程序码）
+   */
+  private static buildMiniProgramPath(
+    merchantId: string,
+    subMchId: string,
+    fixedAmount?: number
+  ): string {
+    const params = new URLSearchParams({
+      merchantId,
+      subMchId,
+      ...(fixedAmount && { amount: fixedAmount?.toString() })
+    })
+    
+    return `pages/payment/index?${params.toString()}`
+  }
+
+  /**
+   * 构建小程序页面路径（用于扫码后跳转）
    */
   private static buildMiniProgramUrl(
     merchantId: string,
@@ -95,10 +167,11 @@ export class MerchantQRCodeService {
     const params = new URLSearchParams({
       merchantId,
       subMchId,
-      ...(fixedAmount && { amount: (fixedAmount / 100).toString() })
+      ...(fixedAmount && { amount: fixedAmount?.toString() })
     })
     
-    return `https://api.guandongfang.cn/miniprogram/payment?${params.toString()}`
+    // 返回实际的小程序H5页面路径，微信扫码后会跳转到小程序
+    return `https://8.156.84.226/miniprogram/payment.html?${params.toString()}`
   }
   
   /**
