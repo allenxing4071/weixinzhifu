@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
-import { PaymentService } from '@/services/PaymentService'
-import { PaymentOrderModel } from '@/models/PaymentOrder'
+import { PaymentService } from '../services/PaymentService'
+import { PaymentOrderModel } from '../models/PaymentOrder'
 
 export class PaymentController {
   /**

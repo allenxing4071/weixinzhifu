@@ -35,7 +35,7 @@ class ApiClient {
 
   constructor() {
     this.instance = axios.create({
-      baseURL: 'http://8.156.84.226/api/v1',  // 使用当前可用的API地址
+      baseURL: 'http://localhost:3003/api/v1',  // 使用新的商户管理API地址
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -202,39 +202,47 @@ export const userApi = {
     apiClient.get('/admin/users/export', params)
 }
 
-// ============= 商户管理API =============
+// ============= 商户管理API (新版本 - 连接到专门的商户后端) =============
 
 export const merchantApi = {
-  // 获取商户列表
-  getMerchants: (params: MerchantListParams): Promise<{ list: Merchant[]; total: number }> =>
+  // 获取商户统计数据
+  getMerchantStats: (): Promise<any> =>
+    apiClient.get('/admin/merchants/stats'),
+
+  // 获取商户列表 (新API结构)
+  getMerchants: (params: any = {}): Promise<{ merchants: Merchant[]; pagination: any }> =>
     apiClient.get('/admin/merchants', params),
 
   // 获取商户详情
-  getMerchantDetail: (id: string): Promise<Merchant> =>
+  getMerchantDetail: (id: string): Promise<{ merchant: Merchant; qrCodeEligibility: any }> =>
     apiClient.get(`/admin/merchants/${id}`),
 
-  // 获取商户统计数据
-  getMerchantStats: (id: string): Promise<MerchantStats> =>
-    apiClient.get(`/admin/merchants/${id}/stats`),
-
-  // 审核商户
-  approveMerchant: (id: string, data: MerchantApprovalForm): Promise<void> =>
-    apiClient.post(`/admin/merchants/${id}/approve`, data),
+  // 创建新商户
+  createMerchant: (data: any): Promise<{ merchant: Merchant }> =>
+    apiClient.post('/admin/merchants', data),
 
   // 更新商户信息
-  updateMerchant: (id: string, data: Partial<Merchant>): Promise<void> =>
+  updateMerchant: (id: string, data: any): Promise<{ merchant: Merchant }> =>
     apiClient.put(`/admin/merchants/${id}`, data),
 
-  // 更新商户状态
-  updateMerchantStatus: (id: string, status: string): Promise<void> =>
-    apiClient.put(`/admin/merchants/${id}/status`, { status }),
+  // 删除商户 (软删除)
+  deleteMerchant: (id: string): Promise<void> =>
+    apiClient.delete(`/admin/merchants/${id}`),
 
-  // 生成商户二维码
+  // 检查二维码生成资格
+  checkQRCodeEligibility: (id: string): Promise<any> =>
+    apiClient.get(`/admin/merchants/${id}/qr-eligibility`),
+
+  // 生成商户二维码 (保留原有接口)
   generateQRCode: (id: string): Promise<{ qrCode: string }> =>
     apiClient.post(`/admin/merchants/${id}/qrcode`),
 
-  // 导出商户数据
-  exportMerchants: (params: MerchantListParams): Promise<Blob> =>
+  // 更新商户状态 (通过updateMerchant实现)
+  updateMerchantStatus: (id: string, status: string): Promise<{ merchant: Merchant }> =>
+    merchantApi.updateMerchant(id, { status }),
+
+  // 导出商户数据 (暂时保留接口)
+  exportMerchants: (params: any): Promise<Blob> =>
     apiClient.get('/admin/merchants/export', params)
 }
 

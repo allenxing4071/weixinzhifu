@@ -1,8 +1,8 @@
 import { Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
-import { UserModel } from '@/models/User'
-import { WechatService } from '@/services/WechatService'
-import config from '@/config'
+import { UserModel } from '../models/User'
+import { WechatService } from '../services/WechatService'
+import { config } from '../config/index'
 
 export class AuthController {
   /**

@@ -1,4 +1,4 @@
-import { getDBConnection } from '@/config/database'
+import { getDBConnection } from '../config/database'
 import { RowDataPacket, ResultSetHeader } from 'mysql2'
 
 export interface PointsRecord {

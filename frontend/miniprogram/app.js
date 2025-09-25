@@ -1,40 +1,42 @@
 // app.js - 纯UI测试版本
 App({
   globalData: {
-    userInfo: {
-      id: 'demo_user_001',
-      nickname: '演示用户',
-      avatar: '',
-      pointsBalance: 1288
-    },
-    token: 'demo_token_123',
-    baseUrl: 'https://api.guandongfang.cn/api/v1',  // 真实产环地址
+    userInfo: null,  // 生产环境：用户信息由登录获取
+    token: null,     // 生产环境：token由登录获取
+    baseUrl: 'https://8.156.84.226/api/v1',  // 生产环境API地址
     version: '1.0.0',
-    productionMode: true,  // 正式环境模式
-    demoMode: false,  // 关闭演示模式，使用真实数据
+    productionMode: true,   // 正式环境模式
+    demoMode: false,        // 关闭演示模式，使用真实数据
   },
 
   onLaunch() {
-    console.log('📱 积分小程序启动（演示模式）')
+    console.log('📱 积分小程序启动（生产环境）')
     
-    // 设置演示数据
-    wx.setStorageSync('userInfo', this.globalData.userInfo)
-    wx.setStorageSync('token', this.globalData.token)
-    wx.setStorageSync('pointsBalance', {
-      balance: 1288,
-      totalEarned: 2000,
-      totalSpent: 712,
-      expiringPoints: 200
-    })
+    // 生产环境：检查本地存储的登录状态
+    const savedToken = wx.getStorageSync('token')
+    const savedUserInfo = wx.getStorageSync('userInfo')
+    
+    if (savedToken && savedUserInfo) {
+      this.globalData.token = savedToken
+      this.globalData.userInfo = savedUserInfo
+      console.log('✅ 恢复登录状态:', savedUserInfo.nickname)
+    } else {
+      console.log('🔑 未登录，需要进行微信授权')
+    }
   },
 
   onShow() {
-    console.log('📱 积分小程序显示（演示模式）')
+    console.log('📱 积分小程序显示（生产环境）')
   },
 
   clearLoginState() {
-    // 演示模式不清除登录状态
-    console.log('演示模式：保持登录状态')
+    // 生产环境：清除登录状态
+    this.globalData.token = null
+    this.globalData.userInfo = null
+    wx.removeStorageSync('token')
+    wx.removeStorageSync('userInfo')
+    wx.removeStorageSync('pointsBalance')
+    console.log('🔑 已清除登录状态')
   },
 
   /**

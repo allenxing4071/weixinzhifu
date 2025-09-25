@@ -1,7 +1,7 @@
-import { PointsRecordModel, CreatePointsRecordData } from '@/models/PointsRecord'
-import { UserModel } from '@/models/User'
-import { getDBConnection } from '@/config/database'
-import config from '@/config'
+import { PointsRecordModel, CreatePointsRecordData } from '../models/PointsRecord'
+import { UserModel } from '../models/User'
+import { getDBConnection } from '../config/database'
+import config from '../config/index'
 
 export class PointsService {
   /**

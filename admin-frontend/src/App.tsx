@@ -15,7 +15,11 @@ import {
   Table,
   Tag,
   Avatar,
-  Dropdown
+  Dropdown,
+  Modal,
+  Input,
+  Select,
+  Form
 } from 'antd'
 import {
   DashboardOutlined,
@@ -26,7 +30,9 @@ import {
   SettingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  QrcodeOutlined,
+  PlusOutlined
 } from '@ant-design/icons'
 import zhCN from 'antd/locale/zh_CN'
 import './App.css'
@@ -236,54 +242,649 @@ const UsersPage: React.FC = () => {
   )
 }
 
-// 商户管理页面
+// 新版商户管理页面 - 使用新的商户CRUD API
 const MerchantsPage: React.FC = () => {
   const [merchants, setMerchants] = useState([])
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<any>(null)
+  const [qrModalVisible, setQrModalVisible] = useState(false)
+  const [selectedMerchant, setSelectedMerchant] = useState<any>(null)
+  const [qrCodeData, setQrCodeData] = useState<any>(null)
+  const [qrLoading, setQrLoading] = useState(false)
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([])
+  const [batchLoading, setBatchLoading] = useState(false)
+  const [dataSource, setDataSource] = useState('unknown')
+  
+  // 新增商户弹窗状态
+  const [createModalVisible, setCreateModalVisible] = useState(false)
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    merchantName: '',
+    contactPerson: '',
+    contactPhone: '',
+    businessLicense: '',
+    contactEmail: '',
+    merchantType: 'INDIVIDUAL',
+    legalPerson: '',
+    businessCategory: '',
+    applymentId: '',
+    subMchId: ''
+  })
 
   useEffect(() => {
-    const loadMerchants = async () => {
-      try {
-        const result = await apiRequest('/admin/merchants')
-        if (result.success) {
-          setMerchants(result.data.merchants || [])
-        }
-      } catch (error) {
-        console.error('Load merchants error:', error)
-        message.error('加载商户数据失败')
-      } finally {
-        setLoading(false)
-      }
-    }
     loadMerchants()
+    loadStats()
   }, [])
 
+  const loadMerchants = async () => {
+    try {
+      console.log('🔄 开始加载商户列表...')
+      const result = await apiRequest('/admin/merchants')
+      
+      if (result.success) {
+        console.log('✅ 商户数据加载成功:', result.data)
+        setMerchants(result.data.merchants || [])
+        setDataSource(result.dataSource || 'unknown')
+        message.success(`加载了${result.data.merchants?.length || 0}个商户 (${result.dataSource === 'database' ? '数据库' : '模拟数据'})`)
+      } else {
+        message.error(result.message || '加载商户数据失败')
+      }
+    } catch (error) {
+      console.error('❌ 加载商户失败:', error)
+      message.error('加载商户数据失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadStats = async () => {
+    try {
+      console.log('📊 开始加载统计数据...')
+      const result = await apiRequest('/admin/merchants/stats')
+      
+      if (result.success) {
+        console.log('✅ 统计数据加载成功:', result.data)
+        setStats(result.data)
+      } else {
+        console.warn('⚠️ 统计数据加载失败:', result.message)
+      }
+    } catch (error) {
+      console.error('❌ 加载统计失败:', error)
+    }
+  }
+
+  // 生成单个商户二维码
+  const generateQRCode = async (merchant: any, amount: number = 50) => {
+    setQrLoading(true)
+    try {
+      const result = await apiRequest(`/admin/merchants/${merchant.merchantId || merchant.id}/qrcode`, {
+        method: 'POST',
+        body: JSON.stringify({ fixedAmount: amount })
+      })
+
+      if (result.success) {
+        setQrCodeData(result.data)
+        message.success('二维码生成成功！')
+      } else {
+        message.error(result.message || '二维码生成失败')
+      }
+    } catch (error) {
+      console.error('Generate QR code error:', error)
+      message.error('二维码生成失败')
+    } finally {
+      setQrLoading(false)
+    }
+  }
+
+  const handleGenerateQR = (merchant: any) => {
+    setSelectedMerchant(merchant)
+    setQrModalVisible(true)
+    generateQRCode(merchant, 50)
+  }
+
+  // 查看商户详情
+  const handleViewDetail = async (merchant: any) => {
+    try {
+      console.log('🔍 查看商户详情:', merchant.id)
+      const result = await apiRequest(`/admin/merchants/${merchant.id}`)
+      
+      if (result.success) {
+        Modal.info({
+          title: `商户详情 - ${merchant.merchantName}`,
+          width: 600,
+          content: (
+            <div style={{ marginTop: 16 }}>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <p><strong>基本信息:</strong></p>
+                  <p>商户编号: {result.data.merchant.merchantNo}</p>
+                  <p>商户类型: {result.data.merchant.merchantType === 'INDIVIDUAL' ? '个体户' : '企业'}</p>
+                  <p>营业执照: {result.data.merchant.businessLicense}</p>
+                  <p>经营类目: {result.data.merchant.businessCategory || '未设置'}</p>
+                </Col>
+                <Col span={12}>
+                  <p><strong>联系信息:</strong></p>
+                  <p>联系人: {result.data.merchant.contactPerson}</p>
+                  <p>电话: {result.data.merchant.contactPhone}</p>
+                  <p>邮箱: {result.data.merchant.contactEmail || '未设置'}</p>
+                  <p>法人: {result.data.merchant.legalPerson || '未设置'}</p>
+                </Col>
+              </Row>
+              <Row gutter={16} style={{ marginTop: 16 }}>
+                <Col span={12}>
+                  <p><strong>微信信息:</strong></p>
+                  <p>申请单号: {result.data.merchant.applymentId || '未设置'}</p>
+                  <p>特约商户号: {result.data.merchant.subMchId || '未设置'}</p>
+                </Col>
+                <Col span={12}>
+                  <p><strong>业务数据:</strong></p>
+                  <p>总金额: ¥{result.data.merchant.totalAmount}</p>
+                  <p>订单数: {result.data.merchant.totalOrders}</p>
+                </Col>
+              </Row>
+              {result.data.qrCodeEligibility && (
+                <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f6f6f6', borderRadius: 4 }}>
+                  <p><strong>二维码生成资格:</strong></p>
+                  <p style={{ color: result.data.qrCodeEligibility.eligible ? 'green' : 'red' }}>
+                    {result.data.qrCodeEligibility.message}
+                  </p>
+                  {result.data.qrCodeEligibility.missingFields && result.data.qrCodeEligibility.missingFields.length > 0 && (
+                    <p style={{ color: 'orange' }}>
+                      缺少字段: {result.data.qrCodeEligibility.missingFields.join('、')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })
+      } else {
+        message.error(result.message || '获取商户详情失败')
+      }
+    } catch (error) {
+      console.error('❌ 获取商户详情失败:', error)
+      message.error('获取商户详情失败')
+    }
+  }
+
+  // 创建新商户
+  const handleCreateMerchant = async () => {
+    setCreateLoading(true)
+    try {
+      console.log('🆕 创建新商户:', createForm)
+      
+      // 验证必填字段
+      if (!createForm.merchantName || !createForm.contactPerson || !createForm.contactPhone || !createForm.businessLicense) {
+        message.error('请填写必填字段')
+        setCreateLoading(false)
+        return
+      }
+
+      const result = await apiRequest('/admin/merchants', {
+        method: 'POST',
+        body: JSON.stringify(createForm)
+      })
+      
+      if (result.success) {
+        message.success(`商户 ${result.data.merchant.merchantName} 创建成功`)
+        setCreateModalVisible(false)
+        setCreateForm({
+          merchantName: '',
+          contactPerson: '',
+          contactPhone: '',
+          businessLicense: '',
+          contactEmail: '',
+          merchantType: 'INDIVIDUAL',
+          legalPerson: '',
+          businessCategory: '',
+          applymentId: '',
+          subMchId: ''
+        })
+        loadMerchants() // 刷新列表
+        loadStats()   // 刷新统计
+      } else {
+        message.error(result.message || '创建商户失败')
+      }
+    } catch (error) {
+      console.error('❌ 创建商户失败:', error)
+      message.error('创建商户失败')
+    } finally {
+      setCreateLoading(false)
+    }
+  }
+
+  // 表单字段更新
+  const handleFormChange = (field: string, value: any) => {
+    setCreateForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  // 批量生成二维码
+  const handleBatchGenerateQR = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请选择要生成二维码的商户')
+      return
+    }
+
+    setBatchLoading(true)
+    try {
+      const result = await apiRequest('/admin/merchants/qrcode/batch', {
+        method: 'POST',
+        body: JSON.stringify({
+          merchantIds: selectedRowKeys,
+          fixedAmount: 50
+        })
+      })
+      
+      if (result.success) {
+        message.success(`批量生成成功: ${result.data.summary.success} 个成功，${result.data.summary.failure} 个失败`)
+        setSelectedRowKeys([])
+      } else {
+        message.error(result.message || '批量生成失败')
+      }
+    } catch (error) {
+      console.error('Batch generate error:', error)
+      message.error('批量生成失败')
+    } finally {
+      setBatchLoading(false)
+    }
+  }
+
+  const downloadQRCode = () => {
+    if (qrCodeData?.qrCodeImage) {
+      const link = document.createElement('a')
+      link.href = `data:image/png;base64,${qrCodeData.qrCodeImage}`
+      link.download = `qrcode_${selectedMerchant?.merchantId || selectedMerchant?.id}.png`
+      link.click()
+    }
+  }
+
   const columns = [
-    { title: '商户ID', dataIndex: 'id', key: 'id' },
-    { title: '公司名称', dataIndex: 'company_name', key: 'company_name' },
-    { title: '联系方式', dataIndex: 'contact', key: 'contact' },
-    { 
-      title: '状态', 
-      dataIndex: 'status', 
+    {
+      title: '商户信息',
+      dataIndex: 'merchantName',
+      key: 'merchantName',
+      width: 250,
+      render: (text: string, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500, marginBottom: 4 }}>{text}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            编号: {record.merchantNo} | ID: {record.id}
+          </div>
+          <div style={{ fontSize: '12px', color: '#999' }}>
+            类型: {record.merchantType === 'INDIVIDUAL' ? '个体户' : '企业'} | 
+            申请单: {record.applymentId || '未设置'}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '联系信息',
+      dataIndex: 'contactPerson',
+      key: 'contactPerson',
+      width: 180,
+      render: (text: string, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{text}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>{record.contactPhone}</div>
+          {record.contactEmail && (
+            <div style={{ fontSize: '12px', color: '#999' }}>{record.contactEmail}</div>
+          )}
+        </div>
+      )
+    },
+    {
+      title: '状态信息',
+      dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
-        <Tag color={status === 'active' ? 'green' : 'red'}>
-          {status === 'active' ? '正常' : '禁用'}
-        </Tag>
+      width: 150,
+      render: (status: string, record: any) => {
+        const statusMap: any = {
+          'active': { color: 'green', text: '活跃' },
+          'pending': { color: 'orange', text: '待审核' },
+          'inactive': { color: 'red', text: '已停用' }
+        }
+        const statusInfo = statusMap[status] || { color: 'default', text: status }
+        
+        return (
+          <div>
+            <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
+            {record.subMchId && (
+              <div style={{ fontSize: '11px', color: '#666', marginTop: 4 }}>
+                微信: {record.subMchId}
+              </div>
+            )}
+          </div>
+        )
+      }
+    },
+    {
+      title: '业务数据',
+      key: 'business',
+      width: 120,
+      render: (text: any, record: any) => (
+        <div>
+          <div style={{ fontSize: '12px' }}>
+            ¥{record.totalAmount || 0}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {record.totalOrders || 0}单
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 160,
+      render: (text: any, record: any) => (
+        <div>
+          <Button 
+            type="primary"
+            icon={<QrcodeOutlined />}
+            onClick={() => handleGenerateQR(record)}
+            size="small"
+            disabled={!record.subMchId || record.status !== 'active'}
+            style={{ marginRight: 8 }}
+          >
+            二维码
+          </Button>
+          <Button 
+            size="small" 
+            onClick={() => handleViewDetail(record)}
+          >
+            详情
+          </Button>
+        </div>
       )
     }
   ]
 
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (newSelectedRowKeys: any[]) => {
+      setSelectedRowKeys(newSelectedRowKeys as string[])
+    },
+    getCheckboxProps: (record: any) => ({
+      disabled: record.status !== '已完成'
+    })
+  }
+
   return (
     <div>
-      <h2>商户管理</h2>
-      <Table 
-        columns={columns} 
-        dataSource={merchants} 
-        loading={loading}
-        rowKey="id"
-        pagination={{ pageSize: 20 }}
-      />
+      {/* 统计卡片 */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic title="总商户数" value={stats?.total || 0} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="已完成" value={stats?.completed || 0} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="审核中" value={stats?.auditing || 0} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="已驳回" value={stats?.rejected || 0} />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 商户列表 */}
+      <Card 
+        title="商户管理" 
+        extra={
+          <div>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => setCreateModalVisible(true)}
+              style={{ marginRight: 8 }}
+            >
+              新增商户
+            </Button>
+            <Button 
+              icon={<QrcodeOutlined />}
+              onClick={handleBatchGenerateQR}
+              loading={batchLoading}
+              disabled={selectedRowKeys.length === 0}
+              style={{ marginRight: 8 }}
+            >
+              批量生成二维码 ({selectedRowKeys.length})
+            </Button>
+            <Button 
+              onClick={loadMerchants}
+              loading={loading}
+            >
+              刷新数据
+            </Button>
+          </div>
+        }
+      >
+        <div style={{ marginBottom: 16, textAlign: 'right' }}>
+          <Tag color={dataSource === 'database' ? 'green' : 'orange'}>
+            数据源: {dataSource === 'database' ? '数据库' : '模拟数据'}
+          </Tag>
+        </div>
+        <Table 
+          rowSelection={rowSelection}
+          columns={columns} 
+          dataSource={merchants} 
+          loading={loading}
+          rowKey="id"
+          pagination={{ 
+            pageSize: 20,
+            showTotal: (total) => `共 ${total} 个商户`,
+            showSizeChanger: true,
+            showQuickJumper: true
+          }}
+          scroll={{ x: 1000 }}
+        />
+      </Card>
+
+      {/* 二维码预览弹窗 */}
+      <Modal
+        title="商户支付二维码"
+        open={qrModalVisible}
+        onCancel={() => {
+          setQrModalVisible(false)
+          setQrCodeData(null)
+          setSelectedMerchant(null)
+        }}
+        footer={[
+          <Button key="close" onClick={() => setQrModalVisible(false)}>
+            关闭
+          </Button>,
+          <Button 
+            key="download" 
+            type="primary" 
+            icon={<QrcodeOutlined />}
+            onClick={downloadQRCode}
+            disabled={!qrCodeData?.qrCodeImage}
+          >
+            下载二维码
+          </Button>
+        ]}
+        width={600}
+      >
+        {qrLoading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <Spin size="large" />
+            <p style={{ marginTop: 16 }}>正在生成二维码...</p>
+          </div>
+        ) : qrCodeData ? (
+          <div style={{ textAlign: 'center' }}>
+            <h3>商户: {selectedMerchant?.merchantName || selectedMerchant?.merchantId}</h3>
+            <div style={{ 
+              display: 'inline-block', 
+              padding: '20px', 
+              border: '1px solid #d9d9d9', 
+              borderRadius: '8px',
+              margin: '20px 0'
+            }}>
+              <img 
+                src={`data:image/png;base64,${qrCodeData.qrCodeImage}`}
+                alt="商户支付二维码"
+                style={{ width: 200, height: 200 }}
+              />
+            </div>
+            <p style={{ color: '#666', fontSize: '14px' }}>
+              扫码支付金额: ¥{qrCodeData.amount || '50.00'}
+            </p>
+            <p style={{ color: '#999', fontSize: '12px' }}>
+              二维码类型: {qrCodeData.qrType === 'miniprogram' ? '微信小程序码' : '标准二维码'}
+            </p>
+            <p style={{ color: '#999', fontSize: '12px' }}>
+              页面路径: {qrCodeData.qrCodeData}
+            </p>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <p>二维码生成失败</p>
+          </div>
+        )}
+      </Modal>
+
+      {/* 新增商户弹窗 */}
+      <Modal
+        title="新增商户"
+        open={createModalVisible}
+        onOk={handleCreateMerchant}
+        onCancel={() => {
+          setCreateModalVisible(false)
+          setCreateForm({
+            merchantName: '',
+            contactPerson: '',
+            contactPhone: '',
+            businessLicense: '',
+            contactEmail: '',
+            merchantType: 'INDIVIDUAL',
+            legalPerson: '',
+            businessCategory: '',
+            applymentId: '',
+            subMchId: ''
+          })
+        }}
+        confirmLoading={createLoading}
+        width={600}
+      >
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="商户名称" required>
+                <Input
+                  value={createForm.merchantName}
+                  onChange={(e) => handleFormChange('merchantName', e.target.value)}
+                  placeholder="请输入商户名称"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="商户类型" required>
+                <Select
+                  value={createForm.merchantType}
+                  onChange={(value) => handleFormChange('merchantType', value)}
+                >
+                  <Select.Option value="INDIVIDUAL">个体户</Select.Option>
+                  <Select.Option value="ENTERPRISE">企业</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="联系人" required>
+                <Input
+                  value={createForm.contactPerson}
+                  onChange={(e) => handleFormChange('contactPerson', e.target.value)}
+                  placeholder="请输入联系人姓名"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="联系电话" required>
+                <Input
+                  value={createForm.contactPhone}
+                  onChange={(e) => handleFormChange('contactPhone', e.target.value)}
+                  placeholder="请输入联系电话"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="营业执照号" required>
+                <Input
+                  value={createForm.businessLicense}
+                  onChange={(e) => handleFormChange('businessLicense', e.target.value)}
+                  placeholder="请输入营业执照号"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="联系邮箱">
+                <Input
+                  value={createForm.contactEmail}
+                  onChange={(e) => handleFormChange('contactEmail', e.target.value)}
+                  placeholder="请输入联系邮箱"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="法定代表人">
+                <Input
+                  value={createForm.legalPerson}
+                  onChange={(e) => handleFormChange('legalPerson', e.target.value)}
+                  placeholder="请输入法定代表人"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="经营类目">
+                <Input
+                  value={createForm.businessCategory}
+                  onChange={(e) => handleFormChange('businessCategory', e.target.value)}
+                  placeholder="请输入经营类目"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="微信申请单号">
+                <Input
+                  value={createForm.applymentId}
+                  onChange={(e) => handleFormChange('applymentId', e.target.value)}
+                  placeholder="请输入微信申请单号"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="微信特约商户号">
+                <Input
+                  value={createForm.subMchId}
+                  onChange={(e) => handleFormChange('subMchId', e.target.value)}
+                  placeholder="请输入特约商户号"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
     </div>
   )
 }

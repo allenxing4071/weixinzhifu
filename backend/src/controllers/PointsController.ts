@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { PointsService } from '@/services/PointsService'
+import { PointsService } from '../services/PointsService'
 
 export class PointsController {
   /**

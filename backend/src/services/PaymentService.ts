@@ -1,11 +1,11 @@
 import crypto from 'crypto'
 import axios from 'axios'
 import xml2js from 'xml2js'
-import { PaymentOrderModel, CreateOrderData } from '@/models/PaymentOrder'
-import { UserModel } from '@/models/User'
+import { PaymentOrderModel, CreateOrderData } from '../models/PaymentOrder'
+import { UserModel } from '../models/User'
 import { PointsService } from './PointsService'
-import { getDBConnection } from '@/config/database'
-import config from '@/config'
+import { getDBConnection } from '../config/database'
+import config from '../config/index'
 
 export interface PaymentParams {
   timeStamp: string
@@ -288,7 +288,7 @@ export class PaymentService {
       .map(key => `${key}=${params[key]}`)
       .join('&')
     
-    const stringSignTemp = `${stringA}&key=${config.wechat.apiKey}`
+    const stringSignTemp = `${stringA}&key=${config.wechat.apiV3Key}`
     
     return crypto
       .createHash('md5')

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
-import config from '@/config'
+import config from '../config/index'
 
 // 扩展Request接口
 declare global {

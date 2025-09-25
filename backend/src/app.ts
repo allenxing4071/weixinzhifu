@@ -5,7 +5,7 @@ import compression from 'compression'
 import rateLimit from 'express-rate-limit'
 import { initDatabase } from './config/database'
 import { errorHandler, requestLogger } from './middleware/validation'
-import config from './config'
+import { config } from './config/index'
 
 // 路由导入
 import authRoutes from './routes/auth'
@@ -13,8 +13,11 @@ import paymentRoutes from './routes/payment'
 import pointsRoutes from './routes/points'
 
 // 管理后台路由导入
-import adminAuthRoutes from './routes/admin/auth'
-import adminDashboardRoutes from './routes/admin/dashboard'
+// import adminAuthRoutes from './routes/admin/auth' // 临时禁用
+// import adminDashboardRoutes from './routes/admin/dashboard' // 临时禁用
+// import wechatMerchantsRoutes from './routes/admin/wechatMerchants' // 临时禁用
+// import merchantQRCodeRoutes from './routes/admin/merchantQRCode' // 临时禁用
+import merchantsRoutes from './routes/admin/merchants' // 商户CRUD管理路由
 
 const app = express()
 
@@ -81,8 +84,11 @@ app.use('/api/v1/payments', paymentRoutes)
 app.use('/api/v1/points', pointsRoutes)
 
 // 管理后台路由
-app.use('/api/v1/admin/auth', adminAuthRoutes)
-app.use('/api/v1/admin/dashboard', adminDashboardRoutes)
+// app.use('/api/v1/admin/auth', adminAuthRoutes) // 临时禁用
+// app.use('/api/v1/admin/dashboard', adminDashboardRoutes) // 临时禁用
+// app.use('/api/v1/admin/wechat-merchants', wechatMerchantsRoutes) // 临时禁用
+// app.use('/api/v1/admin/merchant-qrcode', merchantQRCodeRoutes) // 临时禁用
+app.use('/api/v1/admin/merchants', merchantsRoutes) // 商户CRUD管理
 
 /**
  * 健康检查

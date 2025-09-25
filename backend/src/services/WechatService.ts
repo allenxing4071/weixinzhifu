@@ -1,6 +1,6 @@
 import axios from 'axios'
-import { getRedisClient } from '@/config/database'
-import config from '@/config'
+import { getRedisClient } from '../config/database'
+import config from '../config/index'
 
 export interface WechatUserInfo {
   openid: string
