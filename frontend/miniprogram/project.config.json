@@ -56,7 +56,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "2.31.0",
+  "libVersion": "3.10.1",
   "appid": "wx9bed12ef0904d035",
   "projectname": "points-assistant",
   "isGameTourist": false,

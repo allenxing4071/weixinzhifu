@@ -1,0 +1,149 @@
+/* 全局样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5;
+}
+
+.App {
+  min-height: 100vh;
+}
+
+/* 登录页面样式 */
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-card {
+  width: 400px;
+  max-width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.login-card .ant-card-head {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: none;
+  text-align: center;
+}
+
+.login-card .ant-card-head-title {
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+  padding: 24px 0;
+}
+
+.login-card .ant-card-body {
+  padding: 40px 32px;
+  background: white;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 2px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: #fff;
+}
+
+.login-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  outline: none;
+}
+
+.login-input::placeholder {
+  color: #bfbfbf;
+}
+
+.login-button {
+  width: 100%;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.demo-button {
+  width: 100%;
+  height: 48px;
+  font-size: 16px;
+  border-radius: 8px;
+  background: #52c41a;
+  border-color: #52c41a;
+  color: white;
+}
+
+.demo-button:hover {
+  background: #73d13d !important;
+  border-color: #73d13d !important;
+  color: white !important;
+}
+
+/* 主布局样式 */
+.ant-layout {
+  min-height: 100vh;
+}
+
+.ant-layout-sider {
+  background: #001529;
+  box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
+}
+
+.ant-layout-header {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  padding: 0;
+}
+
+.ant-layout-content {
+  margin: 24px 16px;
+  background: #fff;
+  border-radius: 8px;
+  min-height: 280px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .login-page {
+    padding: 16px;
+  }
+  
+  .login-card {
+    width: 100%;
+    max-width: 350px;
+  }
+  
+  .login-card .ant-card-body {
+    padding: 24px 20px;
+  }
+  
+  .login-input, .login-button, .demo-button {
+    height: 44px;
+    font-size: 15px;
+  }
+}

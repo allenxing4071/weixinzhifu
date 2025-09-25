@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>积分助手 - 仿微信支付界面预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', SimSun, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 667px;
+            background: #ffffff;
+            border-radius: 25px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #000000;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 14px;
+        }
+
+        .payment-container-wechat {
+            background: #f5f5f5;
+            height: calc(100% - 44px);
+            overflow-y: auto;
+            padding-bottom: 100px;
+        }
+
+        /* 顶部导航栏（仿微信） */
+        .wechat-navbar {
+            background: #ffffff;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e5e5e5;
+            text-align: center;
+        }
+
+        .navbar-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        /* 收款方信息区 */
+        .payee-section {
+            background: #ffffff;
+            padding: 30px 20px;
+            margin-bottom: 10px;
+        }
+
+        .payee-label {
+            font-size: 14px;
+            color: #888888;
+            margin-bottom: 20px;
+        }
+
+        .payee-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .payee-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            margin-right: 15px;
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8f65 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .payee-details {
+            flex: 1;
+        }
+
+        .payee-name {
+            font-size: 26px;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .payee-subtitle {
+            font-size: 14px;
+            color: #888888;
+        }
+
+        /* 积分奖励横幅 */
+        .points-highlight-banner {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8f65 100%);
+            color: #ffffff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: pointsBannerPulse 2s ease-in-out infinite;
+        }
+
+        .banner-icon {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .banner-text {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .banner-value {
+            font-size: 13px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        /* 金额输入区 */
+        .amount-section-wechat {
+            background: #ffffff;
+            padding: 30px 20px;
+            margin-bottom: 10px;
+        }
+
+        .amount-label {
+            font-size: 16px;
+            color: #000000;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .amount-input-wechat {
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid #e5e5e5;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .currency {
+            font-size: 36px;
+            font-weight: 300;
+            color: #000000;
+            margin-right: 8px;
+        }
+
+        .amount-display {
+            flex: 1;
+            font-size: 36px;
+            font-weight: 300;
+            color: #000000;
+            text-align: left;
+        }
+
+        /* 快捷金额 */
+        .quick-amounts-wechat {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .quick-amount-wechat {
+            background: #f8f8f8;
+            color: #000000;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-amount-wechat.active {
+            background: #07c160;
+            color: #ffffff;
+        }
+
+        /* 积分预览区域 */
+        .points-preview-highlight {
+            background: #ffffff;
+            margin: 10px 20px;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+            animation: pointsPreviewEnter 0.6s ease-out;
+            box-shadow: 0 2px 12px rgba(255, 107, 53, 0.15);
+        }
+
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .preview-icon {
+            font-size: 18px;
+            margin-right: 6px;
+        }
+
+        .preview-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ff6b35;
+        }
+
+        .points-calculation-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px 10px;
+            margin-bottom: 10px;
+        }
+
+        .calc-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .calc-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .calc-value {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'DIN Alternate', 'PingFang SC', sans-serif;
+        }
+
+        .payment-calc .calc-value {
+            color: #000000;
+        }
+
+        .points-calc .calc-value {
+            color: #ff6b35;
+        }
+
+        .value-calc .calc-value {
+            color: #52c41a;
+        }
+
+        .calc-arrow {
+            font-size: 14px;
+            color: #ff6b35;
+            font-weight: 600;
+            margin: 0 5px;
+        }
+
+        .points-benefit-text {
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .highlight-amount {
+            color: #ff6b35;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* 底部支付按钮 */
+        .payment-bottom-fixed {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            padding: 20px;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .wechat-pay-button {
+            background: #07c160;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            height: 50px;
+            font-size: 18px;
+            font-weight: 500;
+            width: 100%;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .payment-method-info {
+            text-align: center;
+        }
+
+        .method-text {
+            font-size: 12px;
+            color: #888888;
+        }
+
+        @keyframes pointsBannerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+
+        @keyframes pointsPreviewEnter {
+            0% {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .demo-note {
+            text-align: center;
+            margin: 20px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-radius: 8px;
+            color: #1989fa;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-note">
+        📱 积分助手 - 仿微信支付界面预览
+    </div>
+    
+    <div class="phone-frame">
+        <div class="status-bar">
+            <span>2:10</span>
+            <span>100% 🔋</span>
+        </div>
+        
+        <div class="payment-container-wechat">
+            <!-- 顶部导航栏（仿微信） -->
+            <div class="wechat-navbar">
+                <div class="navbar-title">付款</div>
+            </div>
+
+            <!-- 收款方信息（仿微信，突出商户名称） -->
+            <div class="payee-section">
+                <div class="payee-label">付款给个人</div>
+                <div class="payee-info">
+                    <div class="payee-avatar">🏢</div>
+                    <div class="payee-details">
+                        <div class="payee-name">数谷异联科技</div>
+                        <div class="payee-subtitle">科技服务专家</div>
+                    </div>
+                </div>
+                
+            </div>
+
+            <!-- 金额输入区（仿微信） -->
+            <div class="amount-section-wechat">
+                <div class="amount-label">金额</div>
+                
+                <div class="amount-input-wechat">
+                    <span class="currency">¥</span>
+                    <div class="amount-display">100.00</div>
+                </div>
+                
+                <!-- 快捷金额（微信风格） -->
+                <div class="quick-amounts-wechat">
+                    <div class="quick-amount-wechat">10</div>
+                    <div class="quick-amount-wechat">50</div>
+                    <div class="quick-amount-wechat active">100</div>
+                    <div class="quick-amount-wechat">200</div>
+                    <div class="quick-amount-wechat">500</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 底部支付按钮（仿微信固定底部） -->
+        <div class="payment-bottom-fixed">
+            <button class="wechat-pay-button">
+                付款
+            </button>
+            
+            <!-- 支付方式说明 -->
+            <div class="payment-method-info">
+                <div class="method-text">🔒 微信安全支付 | ⚡ 积分立即到账</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-note" style="margin-top: 20px;">
+        <strong>🎯 设计亮点：</strong><br>
+        ✅ 完全仿制微信支付界面风格<br>
+        ✅ 商户名称超大字体突出显示<br>
+        ✅ 积分价值三重强化展示<br>
+        ✅ 橙色主题贯穿积分相关内容<br>
+        ✅ 微信绿色按钮保持用户习惯
+    </div>
+</body>
+</html>

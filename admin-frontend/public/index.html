@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>积分管理后台</title>
+    
+    <!-- 防止钱包插件干扰 - 增强版本 -->
+    <script>
+      // 完全屏蔽钱包插件注入
+      (function() {
+        'use strict';
+        
+        // 定义空对象防止插件注入
+        const noopWallet = {
+          request: () => Promise.reject(new Error('Wallet disabled')),
+          enable: () => Promise.reject(new Error('Wallet disabled')),
+          send: () => Promise.reject(new Error('Wallet disabled'))
+        };
+        
+        // 屏蔽所有已知钱包对象
+        Object.defineProperty(window, 'ethereum', { value: undefined, writable: false });
+        Object.defineProperty(window, 'web3', { value: undefined, writable: false });
+        Object.defineProperty(window, 'tronWeb', { value: undefined, writable: false });
+        Object.defineProperty(window, 'tronLink', { value: undefined, writable: false });
+        Object.defineProperty(window, 'okexchain', { value: undefined, writable: false });
+        Object.defineProperty(window, 'binance', { value: undefined, writable: false });
+        
+        // 拦截所有钱包相关错误
+        window.addEventListener('error', function(e) {
+          if (e.filename && (
+            e.filename.includes('inpage.js') || 
+            e.filename.includes('content-script') ||
+            e.filename.includes('extension') ||
+            e.filename.includes('wallet')
+          )) {
+            console.log('🛡️ 已拦截钱包插件错误:', e.message);
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+        }, true);
+        
+        window.addEventListener('unhandledrejection', function(e) {
+          if (e.reason && (
+            (e.reason.message && (
+              e.reason.message.includes('wallet') ||
+              e.reason.message.includes('account') ||
+              e.reason.message.includes('ethereum') ||
+              e.reason.message.includes('tron')
+            )) ||
+            (e.reason.code === 4001)
+          )) {
+            console.log('🛡️ 已拦截钱包Promise错误:', e.reason);
+            e.preventDefault();
+            return false;
+          }
+        }, true);
+        
+        // 定期清理钱包注入
+        setInterval(() => {
+          if (window.ethereum !== undefined) window.ethereum = undefined;
+          if (window.web3 !== undefined) window.web3 = undefined;
+          if (window.tronWeb !== undefined) window.tronWeb = undefined;
+        }, 1000);
+        
+      })();
+    </script>
+  </head>
+  <body>
+    <noscript>您需要启用JavaScript来运行积分管理后台。</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>

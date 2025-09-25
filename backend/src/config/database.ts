@@ -1,5 +1,9 @@
 import mysql from 'mysql2/promise'
 import Redis from 'redis'
+import { AppDataSource, initTypeORM } from './typeorm'
+
+// 导出TypeORM数据源
+export { AppDataSource }
 
 /**
  * 数据库配置
@@ -60,6 +64,10 @@ export const getRedisClient = async (): Promise<Redis.RedisClientType> => {
  * 数据库初始化
  */
 export const initDatabase = async (): Promise<void> => {
+  // 初始化TypeORM（用于管理后台）
+  await initTypeORM()
+  
+  // 初始化MySQL连接池（用于现有功能）
   const connection = await getDBConnection()
   
   // 测试连接

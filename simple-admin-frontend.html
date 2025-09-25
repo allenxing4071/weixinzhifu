@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>积分管理后台</title>
+    <link href="https://cdn.jsdelivr.net/npm/antd@5.12.8/dist/reset.css" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/antd@5.12.8/dist/antd.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #f0f2f5;
+        }
+        .login-container {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-form {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-header h1 {
+            color: #1890ff;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        .dashboard-container {
+            padding: 24px;
+            min-height: 100vh;
+        }
+        .dashboard-header {
+            background: white;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            margin-right: 16px;
+        }
+        .stat-content h3 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #262626;
+        }
+        .stat-content p {
+            margin: 4px 0 0 0;
+            color: #8c8c8c;
+            font-size: 14px;
+        }
+        .data-table {
+            background: white;
+            padding: 24px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .hidden { display: none; }
+        .visible { display: block; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { 
+            Layout, Menu, Card, Form, Input, Button, message, 
+            Table, Tag, Space, Typography, Statistic, Row, Col,
+            Avatar, Dropdown, Badge 
+        } = antd;
+        const { Header, Content, Footer, Sider } = Layout;
+        const { Title, Text } = Typography;
+
+        // API基础配置
+        const API_BASE = '/api/v1';
+        let authToken = localStorage.getItem('admin_token');
+
+        // API请求函数
+        const apiRequest = async (url, options = {}) => {
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+                },
+                ...options
+            };
+
+            try {
+                const response = await fetch(API_BASE + url, config);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || '请求失败');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        };
+
+        // 登录组件
+        const LoginForm = ({ onLogin }) => {
+            const [loading, setLoading] = useState(false);
+
+            const handleLogin = async (values) => {
+                setLoading(true);
+                try {
+                    const response = await apiRequest('/admin/auth/login', {
+                        method: 'POST',
+                        body: JSON.stringify(values)
+                    });
+
+                    if (response.success) {
+                        authToken = response.data.token;
+                        localStorage.setItem('admin_token', authToken);
+                        localStorage.setItem('admin_info', JSON.stringify(response.data.adminInfo));
+                        message.success('登录成功！');
+                        onLogin(response.data.adminInfo);
+                    }
+                } catch (error) {
+                    message.error(error.message || '登录失败');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="login-container">
+                    <div className="login-form">
+                        <div className="login-header">
+                            <h1>🎛️ 积分管理后台</h1>
+                            <p>请使用管理员账号登录</p>
+                        </div>
+                        <Form onFinish={handleLogin} autoComplete="off">
+                            <Form.Item 
+                                name="username" 
+                                rules={[{ required: true, message: '请输入用户名' }]}
+                            >
+                                <Input 
+                                    placeholder="用户名" 
+                                    size="large"
+                                    defaultValue="admin"
+                                />
+                            </Form.Item>
+                            <Form.Item 
+                                name="password" 
+                                rules={[{ required: true, message: '请输入密码' }]}
+                            >
+                                <Input.Password 
+                                    placeholder="密码" 
+                                    size="large"
+                                    defaultValue="admin123"
+                                />
+                            </Form.Item>
+                            <Form.Item>
+                                <Button 
+                                    type="primary" 
+                                    htmlType="submit" 
+                                    size="large"
+                                    loading={loading}
+                                    block
+                                >
+                                    登录
+                                </Button>
+                            </Form.Item>
+                        </Form>
+                        <div style={{ textAlign: 'center', color: '#999', fontSize: '12px' }}>
+                            默认账号：admin / admin123
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 仪表板组件
+        const Dashboard = ({ adminInfo, onLogout }) => {
+            const [stats, setStats] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            // 获取统计数据
+            const loadStats = async () => {
+                try {
+                    const response = await apiRequest('/admin/dashboard/stats');
+                    if (response.success) {
+                        setStats(response.data);
+                    }
+                } catch (error) {
+                    message.error('获取数据失败');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                loadStats();
+            }, []);
+
+            // 用户菜单
+            const userMenu = (
+                <Menu
+                    items={[
+                        {
+                            key: 'profile',
+                            label: '个人资料'
+                        },
+                        {
+                            key: 'logout',
+                            label: '退出登录',
+                            onClick: onLogout
+                        }
+                    ]}
+                />
+            );
+
+            const menuItems = [
+                {
+                    key: 'dashboard',
+                    label: '仪表板',
+                    icon: React.createElement('span', { style: { fontSize: '16px' } }, '📊')
+                },
+                {
+                    key: 'users',
+                    label: '用户管理',
+                    icon: React.createElement('span', { style: { fontSize: '16px' } }, '👥')
+                },
+                {
+                    key: 'merchants',
+                    label: '商户管理',
+                    icon: React.createElement('span', { style: { fontSize: '16px' } }, '🏪')
+                },
+                {
+                    key: 'points',
+                    label: '积分管理',
+                    icon: React.createElement('span', { style: { fontSize: '16px' } }, '🎁')
+                },
+                {
+                    key: 'orders',
+                    label: '订单管理',
+                    icon: React.createElement('span', { style: { fontSize: '16px' } }, '📋')
+                },
+                {
+                    key: 'settings',
+                    label: '系统设置',
+                    icon: React.createElement('span', { style: { fontSize: '16px' } }, '⚙️')
+                }
+            ];
+
+            return (
+                <Layout style={{ minHeight: '100vh' }}>
+                    <Sider
+                        theme="dark"
+                        width={256}
+                        style={{
+                            position: 'fixed',
+                            height: '100vh',
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                        }}
+                    >
+                        <div style={{ 
+                            height: '64px', 
+                            background: 'rgba(255,255,255,0.1)', 
+                            margin: '16px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '18px',
+                            fontWeight: 'bold'
+                        }}>
+                            🎛️ 管理后台
+                        </div>
+                        <Menu
+                            theme="dark"
+                            mode="inline"
+                            defaultSelectedKeys={['dashboard']}
+                            items={menuItems}
+                        />
+                    </Sider>
+
+                    <Layout style={{ marginLeft: 256 }}>
+                        <Header style={{ 
+                            background: 'white', 
+                            padding: '0 24px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <Title level={4} style={{ margin: 0, color: '#1890ff' }}>
+                                积分管理系统
+                            </Title>
+                            <Dropdown overlay={userMenu} placement="bottomRight">
+                                <Space style={{ cursor: 'pointer' }}>
+                                    <Avatar size="small" style={{ backgroundColor: '#1890ff' }}>
+                                        {adminInfo?.realName?.charAt(0) || 'A'}
+                                    </Avatar>
+                                    <span>{adminInfo?.realName || '管理员'}</span>
+                                </Space>
+                            </Dropdown>
+                        </Header>
+
+                        <Content style={{ margin: '24px', minHeight: 'calc(100vh - 112px)' }}>
+                            {/* 统计卡片 */}
+                            <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+                                <Col xs={24} sm={12} lg={6}>
+                                    <Card>
+                                        <Statistic
+                                            title="总用户数"
+                                            value={stats?.overview?.totalUsers || 0}
+                                            prefix={React.createElement('span', { style: { color: '#1890ff', fontSize: '20px' } }, '👥')}
+                                        />
+                                    </Card>
+                                </Col>
+                                <Col xs={24} sm={12} lg={6}>
+                                    <Card>
+                                        <Statistic
+                                            title="总商户数"
+                                            value={stats?.overview?.totalMerchants || 0}
+                                            prefix={React.createElement('span', { style: { color: '#52c41a', fontSize: '20px' } }, '🏪')}
+                                        />
+                                    </Card>
+                                </Col>
+                                <Col xs={24} sm={12} lg={6}>
+                                    <Card>
+                                        <Statistic
+                                            title="今日订单"
+                                            value={stats?.overview?.todayOrders || 0}
+                                            prefix={React.createElement('span', { style: { color: '#fa8c16', fontSize: '20px' } }, '📋')}
+                                        />
+                                    </Card>
+                                </Col>
+                                <Col xs={24} sm={12} lg={6}>
+                                    <Card>
+                                        <Statistic
+                                            title="今日积分"
+                                            value={stats?.overview?.todayPoints || 0}
+                                            prefix={React.createElement('span', { style: { color: '#eb2f96', fontSize: '20px' } }, '🎁')}
+                                        />
+                                    </Card>
+                                </Col>
+                            </Row>
+
+                            {/* 快速操作 */}
+                            <Card title="📊 系统概览" style={{ marginBottom: 24 }}>
+                                <Row gutter={[16, 16]}>
+                                    <Col span={8}>
+                                        <Card size="small" title="用户统计">
+                                            <p>总用户: <strong>{stats?.overview?.totalUsers || 0}</strong></p>
+                                            <p>活跃用户: <strong>{stats?.overview?.activeUsers || 0}</strong></p>
+                                            <p>今日新增: <strong>{stats?.overview?.todayNewUsers || 0}</strong></p>
+                                        </Card>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Card size="small" title="交易统计">
+                                            <p>今日订单: <strong>{stats?.overview?.todayOrders || 0}</strong></p>
+                                            <p>今日金额: <strong>¥{((stats?.overview?.todayAmount || 0) / 100).toFixed(2)}</strong></p>
+                                            <p>总商户: <strong>{stats?.overview?.totalMerchants || 0}</strong></p>
+                                        </Card>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Card size="small" title="积分统计">
+                                            <p>今日发放: <strong>{stats?.overview?.todayPoints || 0}</strong></p>
+                                            <p>活跃商户: <strong>{stats?.overview?.activeMerchants || 0}</strong></p>
+                                            <Button type="primary" size="small" onClick={loadStats}>
+                                                刷新数据
+                                            </Button>
+                                        </Card>
+                                    </Col>
+                                </Row>
+                            </Card>
+
+                            {/* 系统状态 */}
+                            <Card title="🔔 系统通知">
+                                {stats?.alerts?.length > 0 ? (
+                                    stats.alerts.map(alert => (
+                                        <div key={alert.id} style={{ marginBottom: 16 }}>
+                                            <Tag color={alert.type === 'warning' ? 'orange' : 'blue'}>
+                                                {alert.title}
+                                            </Tag>
+                                            <span style={{ marginLeft: 8 }}>{alert.message}</span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
+                                        <span style={{ fontSize: '48px' }}>✅</span>
+                                        <p>系统运行正常，暂无通知</p>
+                                    </div>
+                                )}
+                            </Card>
+                        </Content>
+
+                        <Footer style={{ textAlign: 'center', background: 'white' }}>
+                            积分管理系统 ©2024 技术支持：产品开发团队
+                        </Footer>
+                    </Layout>
+                </div>
+            );
+        };
+
+        // 主应用组件
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [adminInfo, setAdminInfo] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            // 检查登录状态
+            useEffect(() => {
+                const token = localStorage.getItem('admin_token');
+                const info = localStorage.getItem('admin_info');
+                
+                if (token && info) {
+                    authToken = token;
+                    try {
+                        setAdminInfo(JSON.parse(info));
+                        setIsLoggedIn(true);
+                    } catch (error) {
+                        console.error('Parse admin info error:', error);
+                        localStorage.removeItem('admin_token');
+                        localStorage.removeItem('admin_info');
+                    }
+                }
+                setLoading(false);
+            }, []);
+
+            const handleLogin = (info) => {
+                setAdminInfo(info);
+                setIsLoggedIn(true);
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('admin_info');
+                authToken = null;
+                setAdminInfo(null);
+                setIsLoggedIn(false);
+                message.success('已退出登录');
+            };
+
+            if (loading) {
+                return (
+                    <div style={{ 
+                        height: '100vh', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center' 
+                    }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎛️</div>
+                            <p>管理后台加载中...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return isLoggedIn ? 
+                <Dashboard adminInfo={adminInfo} onLogout={handleLogout} /> : 
+                <LoginForm onLogin={handleLogin} />;
+        };
+
+        // 渲染应用
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

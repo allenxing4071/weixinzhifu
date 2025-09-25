@@ -1,0 +1,158 @@
+/* 仪表板页面样式 */
+
+.dashboard-container {
+  background: #f5f5f5;
+  min-height: calc(100vh - 64px);
+  padding: 0;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding: 24px 24px 0;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.dashboard-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #262626;
+  margin: 0 0 4px 0;
+}
+
+.dashboard-subtitle {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin: 0;
+}
+
+.dashboard-stats {
+  margin-bottom: 24px;
+}
+
+.dashboard-alerts .ant-alert {
+  border-radius: 6px;
+}
+
+.dashboard-alerts .ant-alert:last-child {
+  margin-bottom: 0;
+}
+
+/* 图表区域 */
+.chart-container {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f0f0f0;
+}
+
+.chart-container .ant-card-head {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 0 24px;
+}
+
+.chart-container .ant-card-head-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.chart-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.chart-actions .ant-btn {
+  border: none;
+  box-shadow: none;
+  color: #8c8c8c;
+}
+
+.chart-actions .ant-btn:hover {
+  color: #1890ff;
+  background: #f5f5f5;
+}
+
+/* 近期交易表格 */
+.dashboard-container .ant-table-small .ant-table-tbody > tr > td {
+  padding: 8px;
+  font-size: 13px;
+}
+
+.dashboard-container .ant-table-small .ant-table-thead > tr > th {
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #fafafa;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+    padding: 16px;
+  }
+  
+  .dashboard-title {
+    font-size: 20px;
+  }
+  
+  .dashboard-stats {
+    margin-bottom: 16px;
+  }
+  
+  .chart-container .ant-card-body {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-header {
+    padding: 12px;
+  }
+  
+  .dashboard-title {
+    font-size: 18px;
+  }
+  
+  .dashboard-subtitle {
+    font-size: 13px;
+  }
+}
+
+/* 卡片悬停效果 */
+.dashboard-container .ant-card {
+  transition: all 0.3s;
+  border-radius: 8px;
+}
+
+.dashboard-container .ant-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 加载状态 */
+.dashboard-container .ant-skeleton {
+  padding: 20px;
+}
+
+/* 数据刷新动画 */
+@keyframes dataRefresh {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.dashboard-stats.refreshing {
+  animation: dataRefresh 0.8s ease-in-out;
+}

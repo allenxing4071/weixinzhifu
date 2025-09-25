@@ -12,6 +12,10 @@ import authRoutes from './routes/auth'
 import paymentRoutes from './routes/payment'
 import pointsRoutes from './routes/points'
 
+// 管理后台路由导入
+import adminAuthRoutes from './routes/admin/auth'
+import adminDashboardRoutes from './routes/admin/dashboard'
+
 const app = express()
 
 /**
@@ -75,6 +79,10 @@ app.use(requestLogger)
 app.use('/api/v1/auth', authRoutes)
 app.use('/api/v1/payments', paymentRoutes)
 app.use('/api/v1/points', pointsRoutes)
+
+// 管理后台路由
+app.use('/api/v1/admin/auth', adminAuthRoutes)
+app.use('/api/v1/admin/dashboard', adminDashboardRoutes)
 
 /**
  * 健康检查
