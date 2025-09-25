@@ -271,6 +271,29 @@ const MerchantsPage: React.FC = () => {
     subMchId: ''
   })
 
+  // 编辑商户弹窗状态
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editForm, setEditForm] = useState({
+    id: '',
+    merchantName: '',
+    contactPerson: '',
+    contactPhone: '',
+    businessLicense: '',
+    contactEmail: '',
+    merchantType: 'INDIVIDUAL',
+    legalPerson: '',
+    businessCategory: '',
+    applymentId: '',
+    subMchId: '',
+    status: 'pending'
+  })
+
+  // 商户详情弹窗状态
+  const [detailModalVisible, setDetailModalVisible] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [merchantDetail, setMerchantDetail] = useState<any>(null)
+
   useEffect(() => {
     loadMerchants()
     loadStats()
@@ -344,66 +367,25 @@ const MerchantsPage: React.FC = () => {
 
   // 查看商户详情
   const handleViewDetail = async (merchant: any) => {
+    setDetailLoading(true)
+    setDetailModalVisible(true)
+    
     try {
       console.log('🔍 查看商户详情:', merchant.id)
       const result = await apiRequest(`/admin/merchants/${merchant.id}`)
       
       if (result.success) {
-        Modal.info({
-          title: `商户详情 - ${merchant.merchantName}`,
-          width: 600,
-          content: (
-            <div style={{ marginTop: 16 }}>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <p><strong>基本信息:</strong></p>
-                  <p>商户编号: {result.data.merchant.merchantNo}</p>
-                  <p>商户类型: {result.data.merchant.merchantType === 'INDIVIDUAL' ? '个体户' : '企业'}</p>
-                  <p>营业执照: {result.data.merchant.businessLicense}</p>
-                  <p>经营类目: {result.data.merchant.businessCategory || '未设置'}</p>
-                </Col>
-                <Col span={12}>
-                  <p><strong>联系信息:</strong></p>
-                  <p>联系人: {result.data.merchant.contactPerson}</p>
-                  <p>电话: {result.data.merchant.contactPhone}</p>
-                  <p>邮箱: {result.data.merchant.contactEmail || '未设置'}</p>
-                  <p>法人: {result.data.merchant.legalPerson || '未设置'}</p>
-                </Col>
-              </Row>
-              <Row gutter={16} style={{ marginTop: 16 }}>
-                <Col span={12}>
-                  <p><strong>微信信息:</strong></p>
-                  <p>申请单号: {result.data.merchant.applymentId || '未设置'}</p>
-                  <p>特约商户号: {result.data.merchant.subMchId || '未设置'}</p>
-                </Col>
-                <Col span={12}>
-                  <p><strong>业务数据:</strong></p>
-                  <p>总金额: ¥{result.data.merchant.totalAmount}</p>
-                  <p>订单数: {result.data.merchant.totalOrders}</p>
-                </Col>
-              </Row>
-              {result.data.qrCodeEligibility && (
-                <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f6f6f6', borderRadius: 4 }}>
-                  <p><strong>二维码生成资格:</strong></p>
-                  <p style={{ color: result.data.qrCodeEligibility.eligible ? 'green' : 'red' }}>
-                    {result.data.qrCodeEligibility.message}
-                  </p>
-                  {result.data.qrCodeEligibility.missingFields && result.data.qrCodeEligibility.missingFields.length > 0 && (
-                    <p style={{ color: 'orange' }}>
-                      缺少字段: {result.data.qrCodeEligibility.missingFields.join('、')}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })
+        setMerchantDetail(result.data.merchant)
       } else {
-        message.error(result.message || '获取商户详情失败')
+        message.error('获取商户详情失败: ' + result.message)
+        setMerchantDetail(merchant) // 使用列表数据作为备用
       }
     } catch (error) {
-      console.error('❌ 获取商户详情失败:', error)
+      console.error('查看详情出错:', error)
       message.error('获取商户详情失败')
+      setMerchantDetail(merchant) // 使用列表数据作为备用
+    } finally {
+      setDetailLoading(false)
     }
   }
 
@@ -504,8 +486,74 @@ const MerchantsPage: React.FC = () => {
   // 编辑商户
   const handleEditMerchant = (record: any) => {
     console.log('编辑商户:', record)
-    // TODO: 打开编辑对话框
-    message.info('编辑功能开发中...')
+    setEditForm({
+      id: record.id,
+      merchantName: record.merchantName || '',
+      contactPerson: record.contactPerson || '',
+      contactPhone: record.contactPhone || '',
+      businessLicense: record.businessLicense || '',
+      contactEmail: record.contactEmail || '',
+      merchantType: record.merchantType || 'INDIVIDUAL',
+      legalPerson: record.legalPerson || '',
+      businessCategory: record.businessCategory || '',
+      applymentId: record.applymentId || '',
+      subMchId: record.subMchId || '',
+      status: record.status || 'pending'
+    })
+    setEditModalVisible(true)
+  }
+
+  // 保存编辑的商户
+  const handleSaveEdit = async () => {
+    setEditLoading(true)
+    try {
+      console.log('💾 保存编辑商户:', editForm)
+      
+      // 验证必填字段
+      if (!editForm.merchantName || !editForm.contactPerson || !editForm.contactPhone || !editForm.businessLicense) {
+        message.error('请填写所有必填字段')
+        setEditLoading(false)
+        return
+      }
+
+      const result = await apiRequest(`/admin/merchants/${editForm.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          merchantName: editForm.merchantName,
+          contactPerson: editForm.contactPerson,
+          contactPhone: editForm.contactPhone,
+          businessLicense: editForm.businessLicense,
+          contactEmail: editForm.contactEmail,
+          merchantType: editForm.merchantType,
+          legalPerson: editForm.legalPerson,
+          businessCategory: editForm.businessCategory,
+          applymentId: editForm.applymentId,
+          subMchId: editForm.subMchId,
+          status: editForm.status
+        })
+      })
+      
+      if (result.success) {
+        message.success('商户信息更新成功')
+        setEditModalVisible(false)
+        loadMerchants() // 重新加载列表
+      } else {
+        message.error(result.message || '更新商户失败')
+      }
+    } catch (error) {
+      console.error('Update merchant error:', error)
+      message.error('更新商户失败')
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  // 编辑表单字段更新
+  const handleEditFormChange = (field: string, value: any) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
   // 切换商户状态
@@ -1036,6 +1084,226 @@ const MerchantsPage: React.FC = () => {
             </Col>
           </Row>
         </Form>
+      </Modal>
+
+      {/* 编辑商户弹窗 */}
+      <Modal
+        title="编辑商户"
+        open={editModalVisible}
+        onOk={handleSaveEdit}
+        onCancel={() => setEditModalVisible(false)}
+        confirmLoading={editLoading}
+        width={600}
+      >
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="商户名称" required>
+                <Input
+                  value={editForm.merchantName}
+                  onChange={(e) => handleEditFormChange('merchantName', e.target.value)}
+                  placeholder="请输入商户名称"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="商户类型" required>
+                <Select
+                  value={editForm.merchantType}
+                  onChange={(value) => handleEditFormChange('merchantType', value)}
+                >
+                  <Select.Option value="INDIVIDUAL">个体户</Select.Option>
+                  <Select.Option value="ENTERPRISE">企业</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="联系人" required>
+                <Input
+                  value={editForm.contactPerson}
+                  onChange={(e) => handleEditFormChange('contactPerson', e.target.value)}
+                  placeholder="请输入联系人姓名"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="联系电话" required>
+                <Input
+                  value={editForm.contactPhone}
+                  onChange={(e) => handleEditFormChange('contactPhone', e.target.value)}
+                  placeholder="请输入联系电话"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="营业执照号" required>
+                <Input
+                  value={editForm.businessLicense}
+                  onChange={(e) => handleEditFormChange('businessLicense', e.target.value)}
+                  placeholder="请输入营业执照号"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="联系邮箱">
+                <Input
+                  value={editForm.contactEmail}
+                  onChange={(e) => handleEditFormChange('contactEmail', e.target.value)}
+                  placeholder="请输入联系邮箱"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="法定代表人">
+                <Input
+                  value={editForm.legalPerson}
+                  onChange={(e) => handleEditFormChange('legalPerson', e.target.value)}
+                  placeholder="请输入法定代表人"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="经营类目">
+                <Input
+                  value={editForm.businessCategory}
+                  onChange={(e) => handleEditFormChange('businessCategory', e.target.value)}
+                  placeholder="请输入经营类目"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item label="微信申请单号">
+                <Input
+                  value={editForm.applymentId}
+                  onChange={(e) => handleEditFormChange('applymentId', e.target.value)}
+                  placeholder="请输入微信申请单号"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="微信特约商户号">
+                <Input
+                  value={editForm.subMchId}
+                  onChange={(e) => handleEditFormChange('subMchId', e.target.value)}
+                  placeholder="请输入特约商户号"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="商户状态">
+                <Select
+                  value={editForm.status}
+                  onChange={(value) => handleEditFormChange('status', value)}
+                >
+                  <Select.Option value="pending">待审核</Select.Option>
+                  <Select.Option value="active">已完成</Select.Option>
+                  <Select.Option value="inactive">已禁用</Select.Option>
+                  <Select.Option value="rejected">已驳回</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
+      {/* 商户详情弹窗 */}
+      <Modal
+        title={merchantDetail ? `商户详情 - ${merchantDetail.merchantName}` : '商户详情'}
+        open={detailModalVisible}
+        onCancel={() => {
+          setDetailModalVisible(false)
+          setMerchantDetail(null)
+        }}
+        footer={[
+          <Button key="close" onClick={() => setDetailModalVisible(false)}>
+            关闭
+          </Button>,
+          <Button
+            key="edit"
+            type="primary"
+            onClick={() => {
+              setDetailModalVisible(false)
+              handleEditMerchant(merchantDetail)
+            }}
+            disabled={!merchantDetail}
+          >
+            编辑
+          </Button>
+        ]}
+        width={700}
+      >
+        {detailLoading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <Spin size="large" />
+            <p style={{ marginTop: 16 }}>加载商户详情...</p>
+          </div>
+        ) : merchantDetail ? (
+          <div style={{ marginTop: 16 }}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card title="基本信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>商户编号:</strong> {merchantDetail.merchantNo || '未设置'}</p>
+                  <p><strong>商户类型:</strong> {merchantDetail.merchantType === 'INDIVIDUAL' ? '个体户' : '企业'}</p>
+                  <p><strong>营业执照:</strong> {merchantDetail.businessLicense || '未设置'}</p>
+                  <p><strong>经营类目:</strong> {merchantDetail.businessCategory || '未设置'}</p>
+                  <p><strong>状态:</strong> 
+                    <Tag color={merchantDetail.status === 'active' ? 'green' : merchantDetail.status === 'pending' ? 'orange' : 'red'}>
+                      {merchantDetail.status === 'active' ? '已完成' : 
+                       merchantDetail.status === 'pending' ? '待审核' : 
+                       merchantDetail.status === 'inactive' ? '已禁用' : '已驳回'}
+                    </Tag>
+                  </p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="联系信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>联系人:</strong> {merchantDetail.contactPerson || '未设置'}</p>
+                  <p><strong>联系电话:</strong> {merchantDetail.contactPhone || '未设置'}</p>
+                  <p><strong>联系邮箱:</strong> {merchantDetail.contactEmail || '未设置'}</p>
+                  <p><strong>法定代表人:</strong> {merchantDetail.legalPerson || '未设置'}</p>
+                </Card>
+              </Col>
+            </Row>
+            
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card title="微信支付信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>申请单号:</strong> {merchantDetail.applymentId || '未设置'}</p>
+                  <p><strong>特约商户号:</strong> {merchantDetail.subMchId || '未设置'}</p>
+                  <p><strong>二维码状态:</strong> 
+                    <Tag color={merchantDetail.qrCode ? 'green' : 'orange'}>
+                      {merchantDetail.qrCode ? '已生成' : '未生成'}
+                    </Tag>
+                  </p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="业务数据" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>总收款金额:</strong> ¥{merchantDetail.totalAmount || 0}</p>
+                  <p><strong>总订单数:</strong> {merchantDetail.totalOrders || 0}</p>
+                  <p><strong>创建时间:</strong> {merchantDetail.createdAt ? new Date(merchantDetail.createdAt).toLocaleString() : '未知'}</p>
+                  <p><strong>更新时间:</strong> {merchantDetail.updatedAt ? new Date(merchantDetail.updatedAt).toLocaleString() : '未知'}</p>
+                </Card>
+              </Col>
+            </Row>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <p>暂无数据</p>
+          </div>
+        )}
       </Modal>
     </div>
   )
