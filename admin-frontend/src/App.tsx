@@ -1280,11 +1280,39 @@ const MerchantsPage: React.FC = () => {
             </Col>
             <Col span={12}>
               <Form.Item label="经营类目">
-                <Input
+                <Select
                   value={createForm.businessCategory}
-                  onChange={(e) => handleFormChange('businessCategory', e.target.value)}
-                  placeholder="请输入经营类目"
-                />
+                  onChange={(value) => handleFormChange('businessCategory', value)}
+                  placeholder="请选择经营类目"
+                  showSearch
+                  filterOption={(input, option) =>
+                    String(option?.children || '').toLowerCase().indexOf(input.toLowerCase()) >= 0
+                  }
+                >
+                  <Select.Option value="餐饮">餐饮</Select.Option>
+                  <Select.Option value="零售">零售</Select.Option>
+                  <Select.Option value="休闲娱乐">休闲娱乐</Select.Option>
+                  <Select.Option value="生活服务">生活服务</Select.Option>
+                  <Select.Option value="交通出行">交通出行</Select.Option>
+                  <Select.Option value="汽车">汽车</Select.Option>
+                  <Select.Option value="数字娱乐">数字娱乐</Select.Option>
+                  <Select.Option value="教育培训">教育培训</Select.Option>
+                  <Select.Option value="医疗健康">医疗健康</Select.Option>
+                  <Select.Option value="金融保险">金融保险</Select.Option>
+                  <Select.Option value="房地产">房地产</Select.Option>
+                  <Select.Option value="酒类贸易">酒类贸易</Select.Option>
+                  <Select.Option value="食品饮料">食品饮料</Select.Option>
+                  <Select.Option value="服装鞋帽">服装鞋帽</Select.Option>
+                  <Select.Option value="美妆个护">美妆个护</Select.Option>
+                  <Select.Option value="母婴用品">母婴用品</Select.Option>
+                  <Select.Option value="家居建材">家居建材</Select.Option>
+                  <Select.Option value="数码家电">数码家电</Select.Option>
+                  <Select.Option value="体育户外">体育户外</Select.Option>
+                  <Select.Option value="图书音像">图书音像</Select.Option>
+                  <Select.Option value="工业品">工业品</Select.Option>
+                  <Select.Option value="农林牧渔">农林牧渔</Select.Option>
+                  <Select.Option value="其他">其他</Select.Option>
+                </Select>
               </Form.Item>
             </Col>
           </Row>
@@ -1397,15 +1425,43 @@ const MerchantsPage: React.FC = () => {
                 />
               </Form.Item>
             </Col>
-            <Col span={12}>
-              <Form.Item label="经营类目">
-                <Input
-                  value={editForm.businessCategory}
-                  onChange={(e) => handleEditFormChange('businessCategory', e.target.value)}
-                  placeholder="请输入经营类目"
-                />
-              </Form.Item>
-            </Col>
+                 <Col span={12}>
+                   <Form.Item label="经营类目">
+                     <Select
+                       value={editForm.businessCategory}
+                       onChange={(value) => handleEditFormChange('businessCategory', value)}
+                       placeholder="请选择经营类目"
+                       showSearch
+                       filterOption={(input, option) =>
+                         String(option?.children || '').toLowerCase().indexOf(input.toLowerCase()) >= 0
+                       }
+                     >
+                       <Select.Option value="餐饮">餐饮</Select.Option>
+                       <Select.Option value="零售">零售</Select.Option>
+                       <Select.Option value="休闲娱乐">休闲娱乐</Select.Option>
+                       <Select.Option value="生活服务">生活服务</Select.Option>
+                       <Select.Option value="交通出行">交通出行</Select.Option>
+                       <Select.Option value="汽车">汽车</Select.Option>
+                       <Select.Option value="数字娱乐">数字娱乐</Select.Option>
+                       <Select.Option value="教育培训">教育培训</Select.Option>
+                       <Select.Option value="医疗健康">医疗健康</Select.Option>
+                       <Select.Option value="金融保险">金融保险</Select.Option>
+                       <Select.Option value="房地产">房地产</Select.Option>
+                       <Select.Option value="酒类贸易">酒类贸易</Select.Option>
+                       <Select.Option value="食品饮料">食品饮料</Select.Option>
+                       <Select.Option value="服装鞋帽">服装鞋帽</Select.Option>
+                       <Select.Option value="美妆个护">美妆个护</Select.Option>
+                       <Select.Option value="母婴用品">母婴用品</Select.Option>
+                       <Select.Option value="家居建材">家居建材</Select.Option>
+                       <Select.Option value="数码家电">数码家电</Select.Option>
+                       <Select.Option value="体育户外">体育户外</Select.Option>
+                       <Select.Option value="图书音像">图书音像</Select.Option>
+                       <Select.Option value="工业品">工业品</Select.Option>
+                       <Select.Option value="农林牧渔">农林牧渔</Select.Option>
+                       <Select.Option value="其他">其他</Select.Option>
+                     </Select>
+                   </Form.Item>
+                 </Col>
           </Row>
           
           <Row gutter={16}>
