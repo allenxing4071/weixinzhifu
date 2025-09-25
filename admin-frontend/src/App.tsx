@@ -501,6 +501,62 @@ const MerchantsPage: React.FC = () => {
     }
   }
 
+  // 编辑商户
+  const handleEditMerchant = (record: any) => {
+    console.log('编辑商户:', record)
+    // TODO: 打开编辑对话框
+    message.info('编辑功能开发中...')
+  }
+
+  // 切换商户状态
+  const handleToggleStatus = async (record: any) => {
+    const newStatus = record.status === 'active' ? 'inactive' : 'active'
+    const action = newStatus === 'active' ? '激活' : '禁用'
+    
+    try {
+      const result = await apiRequest(`/admin/merchants/${record.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      })
+      
+      if (result.success) {
+        message.success(`${action}商户成功`)
+        loadMerchants() // 重新加载数据
+      } else {
+        message.error(result.message || `${action}商户失败`)
+      }
+    } catch (error) {
+      console.error('Toggle status error:', error)
+      message.error(`${action}商户失败`)
+    }
+  }
+
+  // 删除商户
+  const handleDeleteMerchant = (record: any) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除商户"${record.merchantName}"吗？此操作不可恢复。`,
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          const result = await apiRequest(`/admin/merchants/${record.id}`, {
+            method: 'DELETE'
+          })
+          
+          if (result.success) {
+            message.success('删除商户成功')
+            loadMerchants() // 重新加载数据
+          } else {
+            message.error(result.message || '删除商户失败')
+          }
+        } catch (error) {
+          console.error('Delete merchant error:', error)
+          message.error('删除商户失败')
+        }
+      }
+    })
+  }
+
   const columns = [
     {
       title: '商户信息',
@@ -578,7 +634,7 @@ const MerchantsPage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 160,
+      width: 220,
       render: (text: any, record: any) => (
         <div>
           <Button 
@@ -587,16 +643,46 @@ const MerchantsPage: React.FC = () => {
             onClick={() => handleGenerateQR(record)}
             size="small"
             disabled={!record.subMchId || record.status !== 'active'}
-            style={{ marginRight: 8 }}
+            style={{ marginRight: 4 }}
           >
             二维码
           </Button>
           <Button 
             size="small" 
             onClick={() => handleViewDetail(record)}
+            style={{ marginRight: 4 }}
           >
             详情
           </Button>
+          <Button 
+            size="small" 
+            onClick={() => handleEditMerchant(record)}
+            style={{ marginRight: 4 }}
+          >
+            编辑
+          </Button>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'activate',
+                  label: record.status === 'active' ? '禁用' : '激活',
+                  onClick: () => handleToggleStatus(record)
+                },
+                {
+                  key: 'delete',
+                  label: '删除',
+                  danger: true,
+                  onClick: () => handleDeleteMerchant(record)
+                }
+              ]
+            }}
+            trigger={['click']}
+          >
+            <Button size="small">
+              更多
+            </Button>
+          </Dropdown>
         </div>
       )
     }
@@ -669,6 +755,72 @@ const MerchantsPage: React.FC = () => {
           </div>
         }
       >
+        {/* 搜索和筛选 */}
+        <div style={{ marginBottom: 16, background: '#f5f5f5', padding: 16, borderRadius: 6 }}>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Input.Search
+                placeholder="搜索商户名称、联系人、电话"
+                allowClear
+                onSearch={(value) => {
+                  // TODO: 实现搜索功能
+                  console.log('搜索:', value)
+                }}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col span={4}>
+              <Select
+                placeholder="筛选状态"
+                allowClear
+                onChange={(value) => {
+                  // TODO: 实现状态筛选
+                  console.log('筛选状态:', value)
+                }}
+                style={{ width: '100%' }}
+              >
+                <Select.Option value="已完成">已完成</Select.Option>
+                <Select.Option value="审核中">审核中</Select.Option>
+                <Select.Option value="已驳回">已驳回</Select.Option>
+                <Select.Option value="待审核">待审核</Select.Option>
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Select
+                placeholder="商户类型"
+                allowClear
+                onChange={(value) => {
+                  // TODO: 实现类型筛选
+                  console.log('筛选类型:', value)
+                }}
+                style={{ width: '100%' }}
+              >
+                <Select.Option value="INDIVIDUAL">个体工商户</Select.Option>
+                <Select.Option value="ENTERPRISE">企业</Select.Option>
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Select
+                placeholder="二维码状态"
+                allowClear
+                onChange={(value) => {
+                  // TODO: 实现二维码筛选
+                  console.log('筛选二维码:', value)
+                }}
+                style={{ width: '100%' }}
+              >
+                <Select.Option value="has_qrcode">已生成</Select.Option>
+                <Select.Option value="no_qrcode">未生成</Select.Option>
+              </Select>
+            </Col>
+            <Col span={4}>
+              <Button type="primary" style={{ width: '100%' }}>
+                高级筛选
+              </Button>
+            </Col>
+          </Row>
+        </div>
+        
         <div style={{ marginBottom: 16, textAlign: 'right' }}>
           <Tag color={dataSource === 'database' ? 'green' : 'orange'}>
             数据源: {dataSource === 'database' ? '数据库' : '模拟数据'}
