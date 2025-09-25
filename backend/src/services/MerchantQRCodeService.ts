@@ -126,7 +126,7 @@ export class MerchantQRCodeService {
     fixedAmount?: number
   ): string {
     // 构建小程序页面路径和参数
-    const basePath = 'pages/payment/index'
+    const basePath = 'https://8.156.84.226/miniprogram/payment.html'
     const params = new URLSearchParams({
       merchantId,
       subMchId,
@@ -153,7 +153,7 @@ export class MerchantQRCodeService {
       ...(fixedAmount && { amount: fixedAmount?.toString() })
     })
     
-    return `pages/payment/index?${params.toString()}`
+    return `https://8.156.84.226/miniprogram/payment.html?${params.toString()}`
   }
 
   /**
@@ -170,7 +170,7 @@ export class MerchantQRCodeService {
       ...(fixedAmount && { amount: fixedAmount?.toString() })
     })
     
-    // 返回实际的小程序H5页面路径，微信扫码后会跳转到小程序
+    // 返回小程序页面路径，微信扫码后会自动跳转到这个页面
     return `https://8.156.84.226/miniprogram/payment.html?${params.toString()}`
   }
   
