@@ -1,4 +1,4 @@
-// payment/index.js - 生产环境版本
+// payment/index.js - 生产环境版本 - 修复商户信息加载
 const app = getApp()
 
 Page({
@@ -10,7 +10,9 @@ Page({
       avatar: '',
       address: '',
       verified: false,
-      status: 'loading'
+      status: 'loading',
+      subMchId: '',
+      businessCategory: ''
     },
     amount: '',
     formattedAmount: '0.00',
@@ -40,7 +42,7 @@ Page({
       })
       
       // 加载真实商户信息
-      this.loadMerchantInfo(options.merchantId)
+      this.loadRealMerchantInfo(options.merchantId)
     } else {
       wx.showModal({
         title: '参数错误',
@@ -72,7 +74,7 @@ Page({
       success: (res) => {
         if (res.confirm) {
           app.doWechatLogin().then(() => {
-            this.loadMerchantInfo(this.data.merchantId)
+            this.loadRealMerchantInfo(this.data.merchantId)
           })
         } else {
           wx.navigateBack()
@@ -82,32 +84,37 @@ Page({
   },
 
   /**
-   * 加载真实商户信息
+   * 加载真实商户信息 - 修复版
    */
-  async loadMerchantInfo(merchantId) {
+  async loadRealMerchantInfo(merchantId) {
     try {
-      console.log('🏪 加载商户信息:', merchantId)
+      console.log('🏪 加载真实商户信息:', merchantId)
       this.setData({ loading: true })
       
+      // 调用真实商户API - 不再使用硬编码数据
       const response = await app.requestAPI(`/merchants/${merchantId}`, 'GET')
       
       if (response.success) {
-        const merchantData = response.data
+        const merchantData = response.data.merchant || response.data
+        
+        console.log('✅ 获取到真实商户数据:', merchantData)
         
         this.setData({
           merchantInfo: {
-            name: merchantData.name || '未知商户',
-            desc: merchantData.businessCategory || '商户服务',
+            name: merchantData.merchantName || merchantData.name || '未知商户',
+            desc: merchantData.businessCategory || merchantData.desc || '商户服务',
             avatar: merchantData.avatar || '/images/default-merchant.png',
             address: merchantData.address || '线上商户',
             verified: merchantData.status === 'active',
             status: merchantData.status || 'unknown',
-            subMchId: merchantData.subMchId,
-            businessCategory: merchantData.businessCategory
+            subMchId: merchantData.subMchId || merchantData.sub_mch_id,
+            businessCategory: merchantData.businessCategory || merchantData.business_category,
+            contactPerson: merchantData.contactPerson || merchantData.contact_person,
+            contactPhone: merchantData.contactPhone || merchantData.contact_phone
           }
         })
         
-        console.log('✅ 商户信息加载成功:', merchantData.name)
+        console.log('✅ 商户信息设置成功:', this.data.merchantInfo.name)
       } else {
         throw new Error(response.message || '获取商户信息失败')
       }
@@ -115,7 +122,7 @@ Page({
     } catch (error) {
       console.error('❌ 加载商户信息失败:', error)
       
-      // 显示错误状态
+      // API失败时显示错误状态，不使用假数据
       this.setData({
         merchantInfo: {
           name: '商户信息加载失败',
@@ -123,13 +130,24 @@ Page({
           avatar: '/images/error-merchant.png',
           address: '未知地址',
           verified: false,
-          status: 'error'
+          status: 'error',
+          subMchId: '',
+          businessCategory: ''
         }
       })
       
-      wx.showToast({
-        title: '商户信息加载失败',
-        icon: 'error'
+      wx.showModal({
+        title: '加载失败',
+        content: `商户信息加载失败: ${error.message}`,
+        confirmText: '重试',
+        cancelText: '返回',
+        success: (res) => {
+          if (res.confirm) {
+            this.loadRealMerchantInfo(merchantId)
+          } else {
+            wx.navigateBack()
+          }
+        }
       })
     } finally {
       this.setData({ loading: false })
@@ -188,8 +206,23 @@ Page({
       return
     }
 
+    // 检查商户状态
+    if (this.data.merchantInfo.status === 'error') {
+      wx.showModal({
+        title: '商户信息错误',
+        content: '商户信息加载失败，请重新扫码或联系商户',
+        showCancel: false
+      })
+      return
+    }
+
     try {
-      console.log('💳 开始真实支付流程...')
+      console.log('💳 开始真实支付流程...', {
+        merchantId: this.data.merchantId,
+        amount: this.data.amount,
+        merchantName: this.data.merchantInfo.name
+      })
+      
       this.setData({ paying: true })
 
       // 1. 创建支付订单
@@ -225,7 +258,8 @@ Page({
       await this.handlePaymentSuccess({
         orderId: paymentParams.orderId,
         amount: this.data.amount,
-        awardedPoints: this.data.expectedPoints
+        awardedPoints: this.data.expectedPoints,
+        merchantName: this.data.merchantInfo.name
       })
 
     } catch (error) {
@@ -262,6 +296,7 @@ Page({
         orderId: paymentResult.orderId,
         amount: paymentResult.amount,
         awardedPoints: paymentResult.awardedPoints,
+        merchantName: paymentResult.merchantName,
         timestamp: Date.now()
       })
 
@@ -329,13 +364,14 @@ Page({
   viewMerchantDetail() {
     if (this.data.merchantInfo.status === 'error') {
       // 重新加载商户信息
-      this.loadMerchantInfo(this.data.merchantId)
+      this.loadRealMerchantInfo(this.data.merchantId)
       return
     }
 
+    const info = this.data.merchantInfo
     wx.showModal({
-      title: this.data.merchantInfo.name,
-      content: `商户类型：${this.data.merchantInfo.businessCategory}\n地址：${this.data.merchantInfo.address}\n状态：${this.data.merchantInfo.verified ? '已认证' : '未认证'}`,
+      title: info.name,
+      content: `商户类型：${info.businessCategory || '未知'}\n联系人：${info.contactPerson || '未知'}\n联系电话：${info.contactPhone || '未知'}\n状态：${info.verified ? '已认证' : '未认证'}\n商户号：${info.subMchId || '未配置'}`,
       showCancel: false
     })
   }
