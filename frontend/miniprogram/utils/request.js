@@ -1,158 +1,225 @@
+// utils/request.js - 统一网络请求工具
+const app = getApp()
+
 /**
- * 生产环境网络请求工具类
+ * 统一网络请求方法
+ * @param {string} url - 接口路径（相对路径，如 '/points/balance'）
+ * @param {string} method - 请求方法 GET|POST|PUT|DELETE
+ * @param {Object} data - 请求数据
+ * @param {Object} customHeaders - 自定义请求头
+ * @returns {Promise} - 返回处理后的响应数据
  */
-
-class RequestManager {
-  constructor() {
-    this.requestQueue = []
-    this.runningRequests = 0
-    this.maxConcurrent = 8 // 小程序并发限制
-  }
-
-  get baseUrl() {
-    const app = getApp()
-    return app?.globalData?.baseUrl || 'http://8.156.84.226/api/v1'
-  }
-
-  /**
-   * 通用请求方法
-   */
-  async request(options) {
-    return new Promise((resolve, reject) => {
-      this.addToQueue({ ...options, resolve, reject })
-    })
-  }
-
-  /**
-   * 添加请求到队列
-   */
-  addToQueue(requestOptions) {
-    this.requestQueue.push(requestOptions)
-    this.processQueue()
-  }
-
-  /**
-   * 处理请求队列
-   */
-  processQueue() {
-    if (this.runningRequests >= this.maxConcurrent || this.requestQueue.length === 0) {
-      return
-    }
-
-    const requestOptions = this.requestQueue.shift()
-    this.runningRequests++
-
-    this.executeRequest(requestOptions)
-  }
-
-  /**
-   * 执行具体请求
-   */
-  executeRequest({ url, method = 'GET', data = {}, header = {}, resolve, reject }) {
-    const app = getApp()
-    const token = app?.globalData?.token
-
+export function requestAPI(url, method = 'GET', data = {}, customHeaders = {}) {
+  return new Promise((resolve, reject) => {
     // 构建完整URL
-    const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`
-
+    const fullUrl = `${app.globalData.baseUrl}${url}`
+    
     // 构建请求头
-    const requestHeader = {
+    const headers = {
       'Content-Type': 'application/json',
-      ...header
+      ...customHeaders
     }
-
-    // 添加认证头
-    if (token) {
-      requestHeader.Authorization = `Bearer ${token}`
+    
+    // 如果有token且不是登录接口，添加Authorization头
+    if (app.globalData.token && !url.includes('/auth/wechat-login')) {
+      headers['Authorization'] = `Bearer ${app.globalData.token}`
     }
-
-    console.log('🌐 API请求:', {
-      url: fullUrl,
-      method,
-      header: requestHeader,
-      data
-    })
-
+    
+    console.log(`📡 发起请求: ${method} ${fullUrl}`, { data, headers })
+    
     wx.request({
       url: fullUrl,
       method,
       data,
-      header: requestHeader,
-      timeout: 30000,
+      header: headers,
+      timeout: 15000, // 15秒超时
       success: (res) => {
-        console.log('✅ API响应:', res.data)
+        console.log(`📡 请求响应: ${method} ${url}`, res)
         
         if (res.statusCode === 200) {
-          resolve(res.data)
+          // 请求成功
+          if (res.data && typeof res.data === 'object') {
+            resolve(res.data)
+          } else {
+            resolve({ success: true, data: res.data })
+          }
+        } else if (res.statusCode === 401) {
+          // Token过期或无效
+          console.warn('🔑 Token过期，清除登录状态')
+          app.clearLoginState()
+          
+          wx.showModal({
+            title: '登录过期',
+            content: '请重新登录',
+            showCancel: false,
+            success: () => {
+              app.doWechatLogin()
+            }
+          })
+          
+          reject(new Error('登录过期'))
+        } else if (res.statusCode === 403) {
+          // 权限不足
+          reject(new Error('权限不足'))
+        } else if (res.statusCode === 404) {
+          // 接口不存在
+          reject(new Error('接口不存在'))
+        } else if (res.statusCode >= 500) {
+          // 服务器错误
+          reject(new Error('服务器错误，请稍后重试'))
         } else {
-          console.error('❌ API错误:', res)
+          // 其他错误
           reject(new Error(`请求失败: ${res.statusCode}`))
         }
       },
-      fail: (err) => {
-        console.error('❌ 网络错误:', err)
-        reject(new Error(err.errMsg || '网络请求失败'))
-      },
-      complete: () => {
-        this.runningRequests--
-        this.processQueue()
+      fail: (error) => {
+        console.error(`❌ 请求失败: ${method} ${url}`, error)
+        
+        let errorMessage = '网络请求失败'
+        
+        if (error.errMsg) {
+          if (error.errMsg.includes('timeout')) {
+            errorMessage = '请求超时，请检查网络连接'
+          } else if (error.errMsg.includes('fail')) {
+            errorMessage = '网络连接失败，请检查网络设置'
+          }
+        }
+        
+        reject(new Error(errorMessage))
       }
     })
-  }
-
-  get(url, params = {}) {
-    const queryString = Object.keys(params)
-      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-      .join('&')
-    const fullUrl = queryString ? `${url}?${queryString}` : url
-    return this.request({ url: fullUrl, method: 'GET' })
-  }
-
-  post(url, data = {}) {
-    return this.request({ url, method: 'POST', data })
-  }
-
-  put(url, data = {}) {
-    return this.request({ url, method: 'PUT', data })
-  }
-
-  delete(url) {
-    return this.request({ url, method: 'DELETE' })
-  }
-}
-
-const request = new RequestManager()
-
-export default request
-
-/**
- * 显示网络错误提示
- */
-export const showNetworkError = (error) => {
-  const message = error?.message || '网络请求失败，请稍后重试'
-  wx.showToast({
-    title: message,
-    icon: 'none',
-    duration: 2000
   })
 }
 
 /**
- * 带加载提示的请求
+ * GET请求简化方法
  */
-export const requestWithLoading = async (requestFn, loadingText = '加载中...') => {
-  wx.showLoading({
-    title: loadingText,
-    mask: true
+export function get(url, params = {}) {
+  let query = ''
+  if (Object.keys(params).length > 0) {
+    query = '?' + new URLSearchParams(params).toString()
+  }
+  return requestAPI(url + query, 'GET')
+}
+
+/**
+ * POST请求简化方法
+ */
+export function post(url, data = {}) {
+  return requestAPI(url, 'POST', data)
+}
+
+/**
+ * PUT请求简化方法
+ */
+export function put(url, data = {}) {
+  return requestAPI(url, 'PUT', data)
+}
+
+/**
+ * DELETE请求简化方法
+ */
+export function del(url) {
+  return requestAPI(url, 'DELETE')
+}
+
+/**
+ * 上传文件
+ */
+export function uploadFile(url, filePath, name = 'file', formData = {}) {
+  return new Promise((resolve, reject) => {
+    const fullUrl = `${app.globalData.baseUrl}${url}`
+    
+    const headers = {}
+    if (app.globalData.token) {
+      headers['Authorization'] = `Bearer ${app.globalData.token}`
+    }
+    
+    wx.uploadFile({
+      url: fullUrl,
+      filePath,
+      name,
+      formData,
+      header: headers,
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.data)
+          resolve(data)
+        } catch (error) {
+          resolve({ success: true, data: res.data })
+        }
+      },
+      fail: reject
+    })
   })
+}
+
+/**
+ * 下载文件
+ */
+export function downloadFile(url, header = {}) {
+  return new Promise((resolve, reject) => {
+    const fullUrl = `${app.globalData.baseUrl}${url}`
+    
+    if (app.globalData.token) {
+      header['Authorization'] = `Bearer ${app.globalData.token}`
+    }
+    
+    wx.downloadFile({
+      url: fullUrl,
+      header,
+      success: resolve,
+      fail: reject
+    })
+  })
+}
+
+/**
+ * 请求拦截器配置
+ */
+export const requestConfig = {
+  baseUrl: 'http://8.156.84.226/api/v1',
+  timeout: 15000,
+  retryTimes: 2, // 重试次数
+  retryDelay: 1000 // 重试延迟(ms)
+}
+
+/**
+ * 带重试机制的请求
+ */
+export function requestWithRetry(url, method = 'GET', data = {}, options = {}) {
+  const { retryTimes = requestConfig.retryTimes, retryDelay = requestConfig.retryDelay } = options
   
-  try {
-    const result = await requestFn()
-    wx.hideLoading()
-    return result
-  } catch (error) {
-    wx.hideLoading()
-    showNetworkError(error)
-    throw error
-  }
+  return new Promise((resolve, reject) => {
+    let attempts = 0
+    
+    const makeRequest = () => {
+      attempts++
+      
+      requestAPI(url, method, data)
+        .then(resolve)
+        .catch((error) => {
+          if (attempts < retryTimes && !error.message.includes('登录过期')) {
+            console.log(`🔄 请求重试 ${attempts}/${retryTimes}: ${url}`)
+            setTimeout(makeRequest, retryDelay)
+          } else {
+            reject(error)
+          }
+        })
+    }
+    
+    makeRequest()
+  })
+}
+
+// 导出默认请求方法
+export default {
+  requestAPI,
+  get,
+  post,
+  put,
+  del,
+  uploadFile,
+  downloadFile,
+  requestWithRetry
 }
