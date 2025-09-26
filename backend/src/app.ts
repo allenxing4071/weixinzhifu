@@ -13,7 +13,7 @@ import paymentRoutes from './routes/payment'
 import pointsRoutes from './routes/points'
 
 // 管理后台路由导入
-// import adminAuthRoutes from './routes/admin/auth' // 临时禁用
+import adminAuthRoutes from './routes/admin/auth' // 管理员认证路由
 // import adminDashboardRoutes from './routes/admin/dashboard' // 临时禁用
 // import wechatMerchantsRoutes from './routes/admin/wechatMerchants' // 临时禁用
 // import merchantQRCodeRoutes from './routes/admin/merchantQRCode' // 临时禁用
@@ -84,7 +84,7 @@ app.use('/api/v1/payments', paymentRoutes)
 app.use('/api/v1/points', pointsRoutes)
 
 // 管理后台路由
-// app.use('/api/v1/admin/auth', adminAuthRoutes) // 临时禁用
+app.use('/api/v1/admin/auth', adminAuthRoutes) // 管理员认证路由
 // app.use('/api/v1/admin/dashboard', adminDashboardRoutes) // 临时禁用
 // app.use('/api/v1/admin/wechat-merchants', wechatMerchantsRoutes) // 临时禁用
 // app.use('/api/v1/admin/merchant-qrcode', merchantQRCodeRoutes) // 临时禁用

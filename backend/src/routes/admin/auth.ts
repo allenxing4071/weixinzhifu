@@ -1,37 +1,42 @@
-// 管理员认证路由
+/**
+ * 管理员认证路由
+ * 按照PRD登录系统要求实现
+ */
 
 import { Router } from 'express'
-import { AdminAuthController, loginValidation, changePasswordValidation } from '../../controllers/admin/AdminAuthController'
-import { verifyAdminToken, logAdminAction } from '../../middleware/admin/adminAuth'
+import { AdminAuthController, loginValidationRules, changePasswordValidationRules } from '../../controllers/admin/AdminAuthController'
+import { authenticateAdminJWT } from '../../middleware/adminAuth'
 
 const router = Router()
 
-// 管理员登录
-router.post('/login', 
-  loginValidation,
-  logAdminAction('admin_login'),
-  AdminAuthController.login
-)
+/**
+ * 管理员登录
+ * POST /api/v1/admin/auth/login
+ */
+router.post('/login', loginValidationRules, AdminAuthController.login)
 
-// 获取当前管理员信息
-router.get('/me', 
-  verifyAdminToken,
-  AdminAuthController.getCurrentAdmin
-)
+/**
+ * 刷新Token
+ * POST /api/v1/admin/auth/refresh
+ */
+router.post('/refresh', AdminAuthController.refreshToken)
 
-// 管理员登出
-router.post('/logout', 
-  verifyAdminToken,
-  logAdminAction('admin_logout'),
-  AdminAuthController.logout
-)
+/**
+ * 管理员登出
+ * POST /api/v1/admin/auth/logout
+ */
+router.post('/logout', authenticateAdminJWT, AdminAuthController.logout)
 
-// 修改密码
-router.post('/change-password', 
-  verifyAdminToken,
-  changePasswordValidation,
-  logAdminAction('admin_change_password'),
-  AdminAuthController.changePassword
-)
+/**
+ * 获取当前管理员信息
+ * GET /api/v1/admin/auth/me
+ */
+router.get('/me', authenticateAdminJWT, AdminAuthController.getCurrentAdmin)
+
+/**
+ * 修改密码
+ * POST /api/v1/admin/auth/change-password
+ */
+router.post('/change-password', authenticateAdminJWT, changePasswordValidationRules, AdminAuthController.changePassword)
 
 export default router

@@ -64,7 +64,7 @@ async function apiRequest(url: string, options: any = {}) {
 // 登录页面组件
 const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({ username: '', password: '' })
+  const [formData, setFormData] = useState({ username: '', password: '', remember: false })
   const navigate = useNavigate()
 
   const handleLogin = async () => {
@@ -75,28 +75,40 @@ const LoginPage: React.FC = () => {
 
     setLoading(true)
     try {
+      console.log('🔐 尝试登录:', { username: formData.username, remember: formData.remember })
+      
       const result = await apiRequest('/admin/auth/login', {
         method: 'POST',
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          remember: formData.remember
+        })
       })
 
+      console.log('📋 登录响应:', result)
+
       if (result.success) {
+        // 保存认证信息
         localStorage.setItem('admin_token', result.data.token)
-        message.success('登录成功！')
+        localStorage.setItem('admin_refresh_token', result.data.refreshToken)
+        localStorage.setItem('admin_info', JSON.stringify(result.data.adminInfo))
+        
+        message.success(`登录成功！欢迎回来，${result.data.adminInfo.realName}`)
         navigate('/dashboard')
       } else {
         message.error(result.message || '登录失败')
       }
     } catch (error) {
-      console.error('Login error:', error)
-      message.error('登录失败，请检查网络连接')
+      console.error('❌ 登录错误:', error)
+      message.error('登录失败，请检查用户名和密码')
     } finally {
       setLoading(false)
     }
   }
 
   const handleDemoLogin = () => {
-    setFormData({ username: 'admin', password: 'admin123' })
+    setFormData({ username: 'admin', password: 'admin123', remember: false })
   }
 
   return (
@@ -117,6 +129,15 @@ const LoginPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             className="login-input"
           />
+          <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={formData.remember}
+              onChange={(e) => setFormData({ ...formData, remember: e.target.checked })}
+              style={{ marginRight: 8 }}
+            />
+            <span style={{ color: '#666', fontSize: '14px' }}>记住登录状态（7天）</span>
+          </div>
           <Button 
             type="primary" 
             loading={loading}
@@ -129,7 +150,7 @@ const LoginPage: React.FC = () => {
             onClick={handleDemoLogin}
             className="demo-button"
           >
-            使用演示账号登录
+            使用演示账号登录 (admin/admin123)
           </Button>
         </div>
       </Card>
