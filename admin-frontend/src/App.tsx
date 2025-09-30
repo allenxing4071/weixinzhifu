@@ -791,7 +791,10 @@ const UsersPage: React.FC = () => {
         rowKey="id"
         pagination={{ 
           pageSize: 20,
-          showTotal: (total) => `共 ${total} 个用户`
+          showTotal: (total) => `共 ${total} 个用户`,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          pageSizeOptions: ['10', '20', '50', '100']
         }}
         scroll={{ x: 1000 }}
       />
@@ -2443,7 +2446,10 @@ const PointsPage: React.FC = () => {
         rowKey="id"
         pagination={{ 
           pageSize: 20,
-          showTotal: (total) => `共 ${total} 条积分记录`
+          showTotal: (total) => `共 ${total} 条积分记录`,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          pageSizeOptions: ['10', '20', '50', '100']
         }}
         scroll={{ x: 1000 }}
       />
