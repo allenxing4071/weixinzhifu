@@ -24,7 +24,8 @@ import {
   Badge,
   Divider,
   List,
-  Tabs
+  Tabs,
+  DatePicker
 } from 'antd'
 import {
   DashboardOutlined,
@@ -54,7 +55,8 @@ import {
   SecurityScanOutlined,
   CrownOutlined,
   SafetyOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined,
+  SearchOutlined
 } from '@ant-design/icons'
 import zhCN from 'antd/locale/zh_CN'
 import './App.css'
@@ -615,6 +617,12 @@ const UsersPage: React.FC = () => {
   const [userDetailVisible, setUserDetailVisible] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [userDetailLoading, setUserDetailLoading] = useState(false)
+  
+  // 搜索和筛选状态
+  const [searchText, setSearchText] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [dateRange, setDateRange] = useState<any>(null)
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([])
 
   const loadUsers = async () => {
     try {
@@ -629,6 +637,46 @@ const UsersPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // 应用筛选逻辑
+  useEffect(() => {
+    let result = [...users]
+    
+    // 文本搜索（用户名、手机号、微信ID、用户ID）
+    if (searchText) {
+      const search = searchText.toLowerCase()
+      result = result.filter((user: any) => 
+        (user.nickname && user.nickname.toLowerCase().includes(search)) ||
+        (user.phone && user.phone.includes(search)) ||
+        (user.wechatId && user.wechatId.toLowerCase().includes(search)) ||
+        (user.id && user.id.toLowerCase().includes(search))
+      )
+    }
+    
+    // 状态筛选
+    if (statusFilter !== 'all') {
+      result = result.filter((user: any) => user.status === statusFilter)
+    }
+    
+    // 日期范围筛选
+    if (dateRange && dateRange.length === 2) {
+      const [startDate, endDate] = dateRange
+      result = result.filter((user: any) => {
+        const userDate = new Date(user.createdAt)
+        return userDate >= startDate.toDate() && userDate <= endDate.toDate()
+      })
+    }
+    
+    setFilteredUsers(result)
+  }, [users, searchText, statusFilter, dateRange])
+
+  // 重置筛选
+  const handleResetFilters = () => {
+    setSearchText('')
+    setStatusFilter('all')
+    setDateRange(null)
+    message.success('已重置筛选条件')
   }
 
   useEffect(() => {
@@ -781,12 +829,71 @@ const UsersPage: React.FC = () => {
           刷新数据
         </Button>
       </div>
+      
       <div style={{ marginBottom: 16, color: '#666' }}>
         管理有消费记录的用户，可以锁定/解锁用户参与积分消费的权限。🔒锁定后用户无法扫码消费获得积分
       </div>
+      
+      {/* 搜索和筛选区域 */}
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ flex: '1 1 300px' }}>
+            <Input.Search
+              placeholder="搜索用户名、手机号、微信ID、用户ID"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onSearch={(value) => setSearchText(value)}
+              allowClear
+              style={{ width: '100%' }}
+              prefix={<SearchOutlined />}
+            />
+          </div>
+          
+          <div style={{ flex: '0 0 150px' }}>
+            <Select
+              value={statusFilter}
+              onChange={setStatusFilter}
+              style={{ width: '100%' }}
+              options={[
+                { label: '全部状态', value: 'all' },
+                { label: '✅ 正常', value: 'active' },
+                { label: '🔒 已锁定', value: 'locked' }
+              ]}
+            />
+          </div>
+          
+          <div style={{ flex: '0 0 280px' }}>
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              placeholder={['注册开始日期', '注册结束日期']}
+              style={{ width: '100%' }}
+            />
+          </div>
+          
+          <div>
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={handleResetFilters}
+            >
+              重置筛选
+            </Button>
+          </div>
+        </div>
+        
+        <div style={{ marginTop: 12, fontSize: '12px', color: '#999' }}>
+          {searchText && <span>🔍 搜索: "{searchText}" </span>}
+          {statusFilter !== 'all' && <span>• 状态: {statusFilter === 'active' ? '正常' : '已锁定'} </span>}
+          {dateRange && <span>• 注册时间: {dateRange[0].format('YYYY-MM-DD')} ~ {dateRange[1].format('YYYY-MM-DD')} </span>}
+          {(searchText || statusFilter !== 'all' || dateRange) && (
+            <span style={{ color: '#1890ff' }}>• 共找到 {filteredUsers.length} 个用户</span>
+          )}
+        </div>
+      </Card>
+      
       <Table 
         columns={columns} 
-        dataSource={users} 
+        dataSource={filteredUsers.length > 0 || searchText || statusFilter !== 'all' || dateRange ? filteredUsers : users} 
         loading={loading}
         rowKey="id"
         pagination={{ 
@@ -1128,7 +1235,7 @@ const MerchantsPage: React.FC = () => {
       const result = await apiRequest(`/admin/merchants/${merchant.id}`)
       
       if (result.success) {
-        setMerchantDetail(result.data.merchant)
+        setMerchantDetail(result.data) // 修复：直接使用result.data
       } else {
         message.error('获取商户详情失败: ' + result.message)
         setMerchantDetail(merchant) // 使用列表数据作为备用
@@ -1546,19 +1653,18 @@ const MerchantsPage: React.FC = () => {
   const columns = [
     {
       title: '商户信息',
-      dataIndex: 'merchantName',
-      key: 'merchantName',
-      width: 250,
+      dataIndex: 'name',
+      key: 'name',
+      width: 220,
       render: (text: string, record: any) => (
         <div>
-          <div style={{ fontWeight: 500, marginBottom: 4 }}>{text}</div>
+          <div style={{ fontWeight: 500, marginBottom: 4 }}>{text || record.merchantName}</div>
           <div style={{ fontSize: '12px', color: '#666' }}>
-            编号: {record.merchantNo} | ID: {record.id}
+            ID: {record.id}
           </div>
-          <div style={{ fontSize: '12px', color: '#999' }}>
-            类型: {record.merchantType === 'INDIVIDUAL' ? '个体户' : '企业'} | 
-            申请单: {record.applymentId || '未设置'}
-          </div>
+          {record.category && (
+            <Tag color="blue" style={{ fontSize: '11px', marginTop: 4 }}>{record.category}</Tag>
+          )}
         </div>
       )
     },
@@ -1566,56 +1672,60 @@ const MerchantsPage: React.FC = () => {
       title: '联系信息',
       dataIndex: 'contactPerson',
       key: 'contactPerson',
-      width: 180,
+      width: 150,
       render: (text: string, record: any) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{text}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>{record.contactPhone}</div>
-          {record.contactEmail && (
-            <div style={{ fontSize: '12px', color: '#999' }}>{record.contactEmail}</div>
-          )}
+          <div style={{ fontWeight: 500 }}>{text || '-'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>{record.contactPhone || '-'}</div>
         </div>
       )
     },
     {
-      title: '状态信息',
-      dataIndex: 'status',
-      key: 'status',
-      width: 150,
-      render: (status: string, record: any) => {
-        const statusMap: any = {
-          'active': { color: 'green', text: '活跃' },
-          'pending': { color: 'orange', text: '待审核' },
-          'inactive': { color: 'red', text: '已停用' }
-        }
-        const statusInfo = statusMap[status] || { color: 'default', text: status }
-        
-        return (
-          <div>
-            <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
-            {record.subMchId && (
-              <div style={{ fontSize: '11px', color: '#666', marginTop: 4 }}>
-                微信: {record.subMchId}
-              </div>
-            )}
-          </div>
-        )
-      }
-    },
-    {
-      title: '业务数据',
-      key: 'business',
-      width: 120,
+      title: '交易统计',
+      key: 'transaction',
+      width: 180,
       render: (text: any, record: any) => (
         <div>
-          <div style={{ fontSize: '12px' }}>
-            ¥{record.totalAmount || 0}
+          <div style={{ fontSize: '13px', fontWeight: 500, color: '#1890ff' }}>
+            ¥{((record.totalAmount || 0) / 100).toFixed(2)}
           </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            {record.totalOrders || 0}单
+          <div style={{ fontSize: '12px', color: '#52c41a', marginTop: 2 }}>
+            {record.orderCount || 0}笔订单
+          </div>
+          <div style={{ fontSize: '12px', color: '#faad14', marginTop: 2 }}>
+            赠{record.totalPoints || 0}积分
           </div>
         </div>
       )
+    },
+    {
+      title: '用户数',
+      dataIndex: 'userCount',
+      key: 'userCount',
+      width: 100,
+      render: (count: number) => (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1890ff' }}>
+            {count || 0}
+          </div>
+          <div style={{ fontSize: '11px', color: '#999' }}>消费用户</div>
+        </div>
+      )
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (status: string) => {
+        const statusMap: any = {
+          'active': { color: 'green', text: '营业中' },
+          'pending': { color: 'orange', text: '待审核' },
+          'inactive': { color: 'red', text: '已停业' }
+        }
+        const statusInfo = statusMap[status] || { color: 'default', text: status }
+        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
+      }
     },
     {
       title: '操作',
@@ -1628,7 +1738,7 @@ const MerchantsPage: React.FC = () => {
             icon={<QrcodeOutlined />}
             onClick={() => handleGenerateQR(record)}
             size="small"
-            disabled={!record.subMchId || record.status !== 'active'}
+            disabled={record.status !== 'active'}
             style={{ marginRight: 4 }}
           >
             二维码
@@ -1695,17 +1805,17 @@ const MerchantsPage: React.FC = () => {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="已完成" value={stats?.completed || 0} />
+            <Statistic title="已完成" value={stats?.active || 0} />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="审核中" value={stats?.auditing || 0} />
+            <Statistic title="审核中" value={stats?.pending || 0} />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="已驳回" value={stats?.rejected || 0} />
+            <Statistic title="已驳回" value={stats?.inactive || 0} />
           </Card>
         </Col>
       </Row>
@@ -2340,25 +2450,26 @@ const PointsPage: React.FC = () => {
   const [points, setPoints] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const [stats, setStats] = useState<any>(null)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0
+  })
+
   useEffect(() => {
     const loadPoints = async () => {
       try {
-        const result = await apiRequest('/admin/points')
+        setLoading(true)
+        const result = await apiRequest(`/admin/points?page=${pagination.page}&pageSize=${pagination.pageSize}`)
         if (result.success) {
-          // 后端返回的是 data 数组，不是 data.records
-          const pointsData = result.data || []
-          // 字段名转换：userId -> user_id, merchantName -> merchant_name 等
-          const formattedData = pointsData.map((item: any) => ({
-            ...item,
-            user_id: item.userId || item.user_id,
-            merchant_name: item.merchantName || item.merchant_name,
-            points_change: item.pointsChange || item.points_change,
-            record_type: item.recordType || item.record_type,
-            related_order_id: item.relatedOrderId || item.related_order_id,
-            merchant_id: item.merchantId || item.merchant_id,
-            created_at: item.createdAt || item.created_at
+          setPoints(result.data || [])
+          setPagination(prev => ({
+            ...prev,
+            total: result.pagination?.total || 0
           }))
-          setPoints(formattedData)
+        } else {
+          message.error(result.message || '加载积分数据失败')
         }
       } catch (error) {
         console.error('Load points error:', error)
@@ -2368,68 +2479,97 @@ const PointsPage: React.FC = () => {
       }
     }
     loadPoints()
-  }, [])
+  }, [pagination.page, pagination.pageSize])
+
+  const handleTableChange = (paginationConfig: any) => {
+    setPagination({
+      page: paginationConfig.current,
+      pageSize: paginationConfig.pageSize,
+      total: paginationConfig.total
+    })
+  }
 
   const columns = [
-    { 
-      title: '用户信息', 
-      dataIndex: 'user_nickname', 
+    {
+      title: '用户信息',
+      dataIndex: 'userNickname',
       key: 'user_info',
-      width: 150,
+      width: 180,
       render: (nickname: string, record: any) => (
         <div>
           <div style={{ fontWeight: 500 }}>{nickname || '未知用户'}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>ID: {record.user_id}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>ID: {record.userId || record.user_id || '-'}</div>
+          {record.userPhone && (
+            <div style={{ fontSize: '12px', color: '#999' }}>{record.userPhone}</div>
+          )}
         </div>
       )
     },
-    { 
-      title: '积分变动', 
-      dataIndex: 'points_change', 
-      key: 'points_change',
-      width: 100,
-      render: (points: number) => (
-        <span style={{ 
-          color: points > 0 ? '#52c41a' : '#ff4d4f',
-          fontWeight: 500 
-        }}>
-          {points > 0 ? '+' : ''}{points}
+    {
+      title: '积分变动',
+      dataIndex: 'pointsChange',
+      key: 'pointsChange',
+      width: 120,
+      align: 'center' as const,
+      render: (points: number, record: any) => {
+        const pointsValue = points || record.points_change || 0;
+        return (
+          <span style={{
+            color: pointsValue > 0 ? '#52c41a' : '#ff4d4f',
+            fontWeight: 600,
+            fontSize: '16px'
+          }}>
+            {pointsValue > 0 ? '+' : ''}{pointsValue}
+          </span>
+        );
+      }
+    },
+    {
+      title: '当前余额',
+      dataIndex: 'currentBalance',
+      key: 'currentBalance',
+      width: 120,
+      align: 'center' as const,
+      render: (balance: number) => (
+        <span style={{ fontWeight: 500, color: '#1890ff' }}>
+          {balance || 0}
         </span>
       )
     },
-    { 
-      title: '当前余额', 
-      dataIndex: 'balance_after', 
-      key: 'balance_after',
-      width: 100
-    },
-    { 
-      title: '消费商户', 
-      dataIndex: 'merchant_name', 
-      key: 'merchant_name',
+    {
+      title: '消费商户',
+      dataIndex: 'merchantName',
+      key: 'merchantName',
       width: 200,
-      render: (merchantName: string, record: any) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{merchantName || '未知商户'}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            {record.record_type === 'payment_reward' ? '支付奖励' : 
-             record.record_type === 'mall_consumption' ? '商城消费' : '管理员调整'}
+      render: (merchantName: string, record: any) => {
+        const name = merchantName || record.merchant_name || '未知商户';
+        return (
+          <div>
+            <div style={{ fontWeight: 500 }}>{name}</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              {record.recordType === 'payment_reward' || record.record_type === 'payment_reward' ? '支付奖励' :
+               record.recordType === 'mall_consumption' || record.record_type === 'mall_consumption' ? '商城消费' : '管理员调整'}
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
-    { 
-      title: '详细描述', 
-      dataIndex: 'description', 
+    {
+      title: '详细描述',
+      dataIndex: 'description',
       key: 'description',
-      width: 250
+      width: 280,
+      ellipsis: true
     },
-    { 
-      title: '时间', 
-      dataIndex: 'created_at', 
-      key: 'created_at',
-      width: 150,
-      render: (time: string) => new Date(time).toLocaleString('zh-CN')
+    {
+      title: '时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 170,
+      render: (time: string, record: any) => {
+        const timeValue = time || record.created_at;
+        return formatDateTime(timeValue);
+      }
     }
   ]
 
@@ -2439,19 +2579,23 @@ const PointsPage: React.FC = () => {
       <div style={{ marginBottom: 16, color: '#666' }}>
         查看所有用户的积分获得记录，包含消费商户和详细信息
       </div>
-      <Table 
-        columns={columns} 
-        dataSource={points} 
+
+      <Table
+        columns={columns}
+        dataSource={points}
         loading={loading}
         rowKey="id"
-        pagination={{ 
-          pageSize: 20,
+        onChange={handleTableChange}
+        pagination={{
+          current: pagination.page,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
           showTotal: (total) => `共 ${total} 条积分记录`,
           showSizeChanger: true,
           showQuickJumper: true,
           pageSizeOptions: ['10', '20', '50', '100']
         }}
-        scroll={{ x: 1000 }}
+        scroll={{ x: 1200 }}
       />
     </div>
   )
@@ -2560,7 +2704,7 @@ const OrdersPage: React.FC = () => {
     try {
       const result = await apiRequest(`/admin/orders/${order.id}`)
       if (result.success) {
-        setSelectedOrder(result.data.order)
+        setSelectedOrder(result.data) // 修复：直接使用 result.data
       } else {
         message.error('获取订单详情失败')
         setSelectedOrder(order) // 使用列表数据作为备用
@@ -2633,25 +2777,31 @@ const OrdersPage: React.FC = () => {
     },
     {
       title: '用户信息',
-      dataIndex: 'user',
+      dataIndex: 'userNickname',
       key: 'user',
       width: 150,
-      render: (user: any) => (
+      render: (nickname: string, record: any) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{user?.nickname || '未知用户'}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>ID: {user?.id || '-'}</div>
+          <div style={{ fontWeight: 500 }}>{nickname || '未知用户'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>ID: {record.userId || '-'}</div>
+          {record.userPhone && (
+            <div style={{ fontSize: '12px', color: '#999' }}>{record.userPhone}</div>
+          )}
         </div>
       )
     },
     {
       title: '商户信息',
-      dataIndex: 'merchant',
+      dataIndex: 'actualMerchantName',
       key: 'merchant',
       width: 180,
-      render: (merchant: any) => (
+      render: (name: string, record: any) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{merchant?.merchantName || '未知商户'}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>{merchant?.contactPerson || ''}</div>
+          <div style={{ fontWeight: 500 }}>{name || record.merchantName || '未知商户'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>ID: {record.merchantId || '-'}</div>
+          {record.merchantContact && (
+            <div style={{ fontSize: '12px', color: '#999' }}>{record.merchantContact}</div>
+          )}
         </div>
       )
     },
@@ -2736,14 +2886,14 @@ const OrdersPage: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={6}>
             <Card>
-              <Statistic title="总订单数" value={stats.overview?.totalOrders || 0} />
+              <Statistic title="总订单数" value={stats?.total || 0} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
               <Statistic 
                 title="已支付订单" 
-                value={stats.overview?.paidOrders || 0}
+                value={stats?.paidCount || 0}
                 valueStyle={{ color: '#3f8600' }}
               />
             </Card>
@@ -2752,7 +2902,7 @@ const OrdersPage: React.FC = () => {
             <Card>
               <Statistic 
                 title="总交易金额" 
-                value={(stats.overview?.totalAmount || 0) / 100}
+                value={(stats?.totalAmount || 0) / 100}
                 precision={2}
                 prefix="¥"
                 valueStyle={{ color: '#1890ff' }}
@@ -2763,7 +2913,7 @@ const OrdersPage: React.FC = () => {
             <Card>
               <Statistic 
                 title="支付成功率" 
-                value={stats.overview?.successRate || 0}
+                value={stats?.successRate || 0}
                 precision={1}
                 suffix="%"
                 valueStyle={{ color: '#cf1322' }}

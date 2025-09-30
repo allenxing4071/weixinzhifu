@@ -5,8 +5,9 @@ const mysql = require('mysql2/promise');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件
-app.use(express.json());
+// 中间件 - 增加请求体大小限制到 50MB
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
@@ -792,9 +793,30 @@ app.get('/api/v1/admin/merchants', async (req, res) => {
     const pageSize = parseInt(req.query.pageSize) || 50;
     const offset = (page - 1) * pageSize;
     
-    const [merchants] = await dbConnection.query(
-      'SELECT id, merchant_name as name, merchant_no as wechatMchId, qr_code as qrCode, status, created_at as createdAt, updated_at as updatedAt FROM merchants ORDER BY created_at DESC LIMIT ' + pageSize + ' OFFSET ' + offset
-    );
+    // 获取商户列表及统计数据
+    const [merchants] = await dbConnection.query(`
+      SELECT 
+        m.id, 
+        m.merchant_name as name, 
+        m.merchant_no as wechatMchId, 
+        m.business_category as category,
+        m.contact_person as contactPerson,
+        m.contact_phone as contactPhone,
+        m.qr_code as qrCode, 
+        m.status, 
+        m.created_at as createdAt, 
+        m.updated_at as updatedAt,
+        COUNT(DISTINCT o.user_id) as userCount,
+        COUNT(CASE WHEN o.status='paid' THEN 1 END) as orderCount,
+        COALESCE(SUM(CASE WHEN o.status='paid' THEN o.amount ELSE 0 END), 0) as totalAmount,
+        COALESCE(SUM(CASE WHEN o.status='paid' THEN o.points_awarded ELSE 0 END), 0) as totalPoints
+      FROM merchants m
+      LEFT JOIN payment_orders o ON CAST(m.id AS CHAR) = CAST(o.merchant_id AS CHAR)
+      GROUP BY m.id, m.merchant_name, m.merchant_no, m.business_category, m.contact_person, m.contact_phone, m.qr_code, m.status, m.created_at, m.updated_at
+      ORDER BY totalAmount DESC, m.created_at DESC 
+      LIMIT ${pageSize} OFFSET ${offset}
+    `);
+    
     const [total] = await dbConnection.query('SELECT COUNT(*) as count FROM merchants');
     
     res.json({ 
@@ -807,6 +829,7 @@ app.get('/api/v1/admin/merchants', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('获取商户列表失败:', error);
     res.status(500).json({ success: false, message: '获取商户列表失败', error: error.message });
   }
 });
@@ -817,10 +840,20 @@ app.get('/api/v1/admin/merchants/stats', async (req, res) => {
       return res.status(503).json({ success: false, message: '数据库未连接' });
     }
     const [stats] = await dbConnection.execute(
-      'SELECT COUNT(*) as total, SUM(status = "active") as active, SUM(status = "inactive") as inactive FROM merchants'
+      'SELECT COUNT(*) as total, SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status = "inactive" THEN 1 ELSE 0 END) as inactive, SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending FROM merchants'
     );
-    res.json({ success: true, data: stats[0] });
+    
+    // 强制转换为数字
+    const result = {
+      total: parseInt(stats[0].total) || 0,
+      active: parseInt(stats[0].active) || 0,
+      inactive: parseInt(stats[0].inactive) || 0,
+      pending: parseInt(stats[0].pending) || 0
+    };
+    
+    res.json({ success: true, data: result });
   } catch (error) {
+    console.error('获取商户统计失败:', error);
     res.status(500).json({ success: false, message: '获取商户统计失败', error: error.message });
   }
 });
@@ -830,15 +863,77 @@ app.get('/api/v1/admin/merchants/:id', async (req, res) => {
     if (!dbConnection) {
       return res.status(503).json({ success: false, message: '数据库未连接' });
     }
+    
+    const merchantId = req.params.id;
+    
+    // 获取商户基本信息
     const [merchants] = await dbConnection.execute(
       'SELECT * FROM merchants WHERE id = ?',
-      [req.params.id]
+      [merchantId]
     );
+    
     if (merchants.length === 0) {
       return res.status(404).json({ success: false, message: '商户不存在' });
     }
-    res.json({ success: true, data: merchants[0] });
+    
+    // 获取商户统计数据
+    const [stats] = await dbConnection.execute(`
+      SELECT 
+        COUNT(DISTINCT user_id) as userCount,
+        COUNT(CASE WHEN status='paid' THEN 1 END) as paidOrders,
+        COUNT(CASE WHEN status='pending' THEN 1 END) as pendingOrders,
+        COUNT(CASE WHEN status='cancelled' THEN 1 END) as cancelledOrders,
+        COALESCE(SUM(CASE WHEN status='paid' THEN amount ELSE 0 END), 0) as totalAmount,
+        COALESCE(SUM(CASE WHEN status='paid' THEN points_awarded ELSE 0 END), 0) as totalPoints
+      FROM payment_orders
+      WHERE merchant_id = ?
+    `, [merchantId]);
+    
+    // 获取最近10笔订单
+    const [recentOrders] = await dbConnection.execute(`
+      SELECT 
+        o.id,
+        o.user_id as userId,
+        u.nickname as userNickname,
+        o.amount,
+        o.points_awarded as pointsAwarded,
+        o.status,
+        o.created_at as createdAt,
+        o.paid_at as paidAt
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(o.user_id AS CHAR) = CAST(u.id AS CHAR)
+      WHERE o.merchant_id = ?
+      ORDER BY o.created_at DESC
+      LIMIT 10
+    `, [merchantId]);
+    
+    // 获取消费用户TOP10
+    const [topUsers] = await dbConnection.execute(`
+      SELECT 
+        u.id as userId,
+        u.nickname,
+        COUNT(*) as orderCount,
+        COALESCE(SUM(CASE WHEN o.status='paid' THEN o.amount ELSE 0 END), 0) as totalAmount,
+        COALESCE(SUM(CASE WHEN o.status='paid' THEN o.points_awarded ELSE 0 END), 0) as totalPoints
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(o.user_id AS CHAR) = CAST(u.id AS CHAR)
+      WHERE o.merchant_id = ? AND o.status='paid'
+      GROUP BY u.id, u.nickname
+      ORDER BY totalAmount DESC
+      LIMIT 10
+    `, [merchantId]);
+    
+    res.json({ 
+      success: true, 
+      data: {
+        ...merchants[0],
+        stats: stats[0],
+        recentOrders: recentOrders,
+        topUsers: topUsers
+      }
+    });
   } catch (error) {
+    console.error('获取商户详情失败:', error);
     res.status(500).json({ success: false, message: '获取商户详情失败', error: error.message });
   }
 });
@@ -897,10 +992,79 @@ app.get('/api/v1/admin/orders', async (req, res) => {
     const pageSize = parseInt(req.query.pageSize) || 20;
     const offset = (page - 1) * pageSize;
     
-    const [orders] = await dbConnection.query(
-      'SELECT id, user_id as userId, merchant_id as merchantId, merchant_name as merchantName, amount, points_awarded as pointsAwarded, payment_method as paymentMethod, status, wechat_order_id as wechatOrderId, paid_at as paidAt, created_at as createdAt, updated_at as updatedAt FROM payment_orders ORDER BY created_at DESC LIMIT ' + pageSize + ' OFFSET ' + offset
-    );
-    const [total] = await dbConnection.query('SELECT COUNT(*) as count FROM payment_orders');
+    // 获取搜索和筛选参数
+    const { status, merchantId, search, dateFrom, dateTo } = req.query;
+    
+    // 构建WHERE条件
+    let whereConditions = [];
+    let queryParams = [];
+    
+    if (status) {
+      whereConditions.push('o.status = ?');
+      queryParams.push(status);
+    }
+    
+    if (merchantId) {
+      whereConditions.push('CAST(o.merchant_id AS CHAR) = ?');
+      queryParams.push(merchantId);
+    }
+    
+    if (search) {
+      whereConditions.push('(CAST(o.id AS CHAR) LIKE ? OR m.merchant_name LIKE ? OR u.nickname LIKE ?)');
+      const searchPattern = `%${search}%`;
+      queryParams.push(searchPattern, searchPattern, searchPattern);
+    }
+    
+    if (dateFrom) {
+      whereConditions.push('o.created_at >= ?');
+      queryParams.push(dateFrom);
+    }
+    
+    if (dateTo) {
+      whereConditions.push('o.created_at <= ?');
+      queryParams.push(dateTo + ' 23:59:59');
+    }
+    
+    const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+    
+    // 查询订单列表（带用户和商户信息）
+    const [orders] = await dbConnection.query(`
+      SELECT 
+        o.id,
+        o.user_id as userId,
+        o.merchant_id as merchantId,
+        o.merchant_name as merchantName,
+        o.amount,
+        o.points_awarded as pointsAwarded,
+        o.payment_method as paymentMethod,
+        o.status,
+        o.wechat_order_id as wechatOrderId,
+        o.paid_at as paidAt,
+        o.created_at as createdAt,
+        o.updated_at as updatedAt,
+        u.nickname as userNickname,
+        u.phone as userPhone,
+        u.avatar as userAvatar,
+        m.merchant_name as actualMerchantName,
+        m.contact_person as merchantContact,
+        m.contact_phone as merchantPhone,
+        m.status as merchantStatus
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(o.user_id AS CHAR) = CAST(u.id AS CHAR)
+      LEFT JOIN merchants m ON CAST(o.merchant_id AS CHAR) = CAST(m.id AS CHAR)
+      ${whereClause}
+      ORDER BY o.created_at DESC 
+      LIMIT ${pageSize} OFFSET ${offset}
+    `, queryParams);
+    
+    // 查询总数
+    const [total] = await dbConnection.query(`
+      SELECT COUNT(*) as count 
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(o.user_id AS CHAR) = CAST(u.id AS CHAR)
+      LEFT JOIN merchants m ON CAST(o.merchant_id AS CHAR) = CAST(m.id AS CHAR)
+      ${whereClause}
+    `, queryParams);
     
     res.json({ 
       success: true, 
@@ -908,10 +1072,11 @@ app.get('/api/v1/admin/orders', async (req, res) => {
       pagination: {
         page,
         pageSize,
-        total: total[0].count
+        total: parseInt(total[0].count) || 0
       }
     });
   } catch (error) {
+    console.error('获取订单列表失败:', error);
     res.status(500).json({ success: false, message: '获取订单列表失败', error: error.message });
   }
 });
@@ -921,11 +1086,33 @@ app.get('/api/v1/admin/orders/stats', async (req, res) => {
     if (!dbConnection) {
       return res.status(503).json({ success: false, message: '数据库未连接' });
     }
-    const [stats] = await dbConnection.execute(
-      'SELECT COUNT(*) as total, SUM(amount) as totalAmount, SUM(status = "paid") as successCount FROM payment_orders'
-    );
-    res.json({ success: true, data: stats[0] });
+    
+    const [stats] = await dbConnection.execute(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN status = 'paid' THEN 1 END) as paidCount,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pendingCount,
+        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelledCount,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as totalAmount,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN points_awarded ELSE 0 END), 0) as totalPoints,
+        ROUND(COUNT(CASE WHEN status = 'paid' THEN 1 END) * 100.0 / COUNT(*), 2) as successRate
+      FROM payment_orders
+    `);
+    
+    // 强制转换为数字
+    const result = {
+      total: parseInt(stats[0].total) || 0,
+      paidCount: parseInt(stats[0].paidCount) || 0,
+      pendingCount: parseInt(stats[0].pendingCount) || 0,
+      cancelledCount: parseInt(stats[0].cancelledCount) || 0,
+      totalAmount: parseInt(stats[0].totalAmount) || 0,
+      totalPoints: parseInt(stats[0].totalPoints) || 0,
+      successRate: parseFloat(stats[0].successRate) || 0
+    };
+    
+    res.json({ success: true, data: result });
   } catch (error) {
+    console.error('获取订单统计失败:', error);
     res.status(500).json({ success: false, message: '获取订单统计失败', error: error.message });
   }
 });
@@ -935,15 +1122,87 @@ app.get('/api/v1/admin/orders/:id', async (req, res) => {
     if (!dbConnection) {
       return res.status(503).json({ success: false, message: '数据库未连接' });
     }
-    const [orders] = await dbConnection.execute(
-      'SELECT * FROM payment_orders WHERE id = ?',
-      [req.params.id]
-    );
+    
+    const orderId = req.params.id;
+    
+    // 查询订单详情（包含用户和商户信息）
+    const [orders] = await dbConnection.execute(`
+      SELECT 
+        o.*,
+        u.id as user_id,
+        u.nickname as user_nickname,
+        u.phone as user_phone,
+        u.avatar as user_avatar,
+        u.wechat_id as user_wechat_id,
+        m.id as merchant_id,
+        m.merchant_name as merchant_name,
+        m.merchant_no as merchant_no,
+        m.business_category as merchant_category,
+        m.contact_person as merchant_contact,
+        m.contact_phone as merchant_phone,
+        m.status as merchant_status
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(o.user_id AS CHAR) = CAST(u.id AS CHAR)
+      LEFT JOIN merchants m ON CAST(o.merchant_id AS CHAR) = CAST(m.id AS CHAR)
+      WHERE CAST(o.id AS CHAR) = ?
+    `, [orderId]);
+    
     if (orders.length === 0) {
       return res.status(404).json({ success: false, message: '订单不存在' });
     }
-    res.json({ success: true, data: orders[0] });
+    
+    const order = orders[0];
+    
+    // 查询该用户的积分信息
+    const [userPoints] = await dbConnection.execute(`
+      SELECT 
+        available_points as availablePoints,
+        total_earned as totalEarned,
+        total_spent as totalSpent
+      FROM user_points
+      WHERE CAST(user_id AS CHAR) = ?
+    `, [order.user_id]);
+    
+    // 组装完整的订单详情
+    const orderDetail = {
+      // 订单基本信息
+      id: order.id,
+      userId: order.user_id,
+      merchantId: order.merchant_id,
+      amount: order.amount,
+      pointsAwarded: order.points_awarded,
+      paymentMethod: order.payment_method,
+      status: order.status,
+      wechatOrderId: order.wechat_order_id,
+      paidAt: order.paid_at,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+      
+      // 用户信息
+      userInfo: {
+        id: order.user_id,
+        nickname: order.user_nickname || '未知用户',
+        phone: order.user_phone,
+        avatar: order.user_avatar,
+        wechatId: order.user_wechat_id,
+        points: userPoints.length > 0 ? userPoints[0] : { availablePoints: 0, totalEarned: 0, totalSpent: 0 }
+      },
+      
+      // 商户信息
+      merchantInfo: {
+        id: order.merchant_id,
+        name: order.merchant_name || '未知商户',
+        merchantNo: order.merchant_no,
+        category: order.merchant_category,
+        contact: order.merchant_contact,
+        phone: order.merchant_phone,
+        status: order.merchant_status
+      }
+    };
+    
+    res.json({ success: true, data: orderDetail });
   } catch (error) {
+    console.error('获取订单详情失败:', error);
     res.status(500).json({ success: false, message: '获取订单详情失败', error: error.message });
   }
 });
@@ -1140,14 +1399,34 @@ app.get('/api/v1/admin/points', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pageSize) || 20;
     const offset = (page - 1) * pageSize;
-    
-    const [points] = await dbConnection.query(
-      'SELECT id, user_id as userId, points_change as pointsChange, record_type as recordType, related_order_id as relatedOrderId, merchant_id as merchantId, merchant_name as merchantName, description, created_at as createdAt FROM points_records ORDER BY created_at DESC LIMIT ' + pageSize + ' OFFSET ' + offset
-    );
+
+    // JOIN users表获取用户昵称，JOIN user_points获取当前积分余额
+    const [points] = await dbConnection.query(`
+      SELECT
+        pr.id,
+        pr.user_id as userId,
+        u.nickname as userNickname,
+        u.phone as userPhone,
+        u.avatar as userAvatar,
+        pr.points_change as pointsChange,
+        pr.record_type as recordType,
+        pr.related_order_id as relatedOrderId,
+        pr.merchant_id as merchantId,
+        pr.merchant_name as merchantName,
+        pr.description,
+        pr.created_at as createdAt,
+        up.available_points as currentBalance
+      FROM points_records pr
+      LEFT JOIN users u ON CAST(pr.user_id AS CHAR) = CAST(u.id AS CHAR)
+      LEFT JOIN user_points up ON CAST(pr.user_id AS CHAR) = CAST(up.user_id AS CHAR)
+      ORDER BY pr.created_at DESC
+      LIMIT ${pageSize} OFFSET ${offset}
+    `);
+
     const [total] = await dbConnection.query('SELECT COUNT(*) as count FROM points_records');
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       data: points,
       pagination: {
         page,
@@ -1156,6 +1435,7 @@ app.get('/api/v1/admin/points', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('获取积分记录失败:', error);
     res.status(500).json({ success: false, message: '获取积分记录失败', error: error.message });
   }
 });
