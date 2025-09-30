@@ -141,6 +141,62 @@ app.get('/api/v1/admin/dashboard/stats', async (req, res) => {
     const [todayNewUsers] = await dbConnection.query('SELECT COUNT(DISTINCT user_id) as count FROM payment_orders WHERE DATE(created_at) = ?', [today]);
     const [todayNewMerchants] = await dbConnection.query('SELECT COUNT(*) as count FROM merchants WHERE DATE(created_at) = ?', [today]);
     
+    // 最近7天交易趋势
+    const [weeklyTrends] = await dbConnection.query(`
+      SELECT 
+        DATE(created_at) as date,
+        COUNT(*) as orders,
+        SUM(amount) as revenue
+      FROM payment_orders 
+      WHERE status = "paid" AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `);
+    
+    // 商户类别分布
+    const [categoryStats] = await dbConnection.query(`
+      SELECT 
+        m.business_category as category,
+        COUNT(DISTINCT m.id) as count,
+        COALESCE(SUM(o.amount), 0) as total_revenue
+      FROM merchants m
+      LEFT JOIN payment_orders o ON CAST(m.id AS CHAR) = CAST(o.merchant_id AS CHAR) AND o.status = "paid"
+      WHERE m.status = "active"
+      GROUP BY m.business_category
+      ORDER BY total_revenue DESC
+    `);
+    
+    // 最新订单（最近5笔）
+    const [recentOrders] = await dbConnection.query(`
+      SELECT 
+        o.id,
+        o.amount,
+        o.points_awarded as pointsAwarded,
+        o.merchant_name as merchantName,
+        o.status,
+        o.created_at as createdAt,
+        u.nickname as userNickname
+      FROM payment_orders o
+      LEFT JOIN users u ON CAST(o.user_id AS CHAR) = CAST(u.id AS CHAR)
+      ORDER BY o.created_at DESC
+      LIMIT 5
+    `);
+    
+    // 待处理商户申请
+    const [pendingMerchants] = await dbConnection.query(`
+      SELECT 
+        id,
+        merchant_name as name,
+        contact_person as contactPerson,
+        contact_phone as contactPhone,
+        business_category as category,
+        created_at as createdAt
+      FROM merchants
+      WHERE status = "pending"
+      ORDER BY created_at DESC
+      LIMIT 5
+    `);
+    
     res.json({
       success: true,
       data: {
@@ -156,6 +212,37 @@ app.get('/api/v1/admin/dashboard/stats', async (req, res) => {
           revenue: (todayAmount[0].total || 0) / 100,
           newUsers: todayNewUsers[0].count || 0,
           newMerchants: todayNewMerchants[0].count || 0
+        },
+        trends: {
+          weekly: weeklyTrends.map(item => ({
+            date: item.date,
+            orders: item.orders,
+            revenue: item.revenue
+          })),
+          merchantCategories: categoryStats.map(item => ({
+            category: item.category || '未分类',
+            count: item.count,
+            revenue: (item.total_revenue || 0) / 100
+          }))
+        },
+        quickAccess: {
+          recentOrders: recentOrders.map(order => ({
+            id: order.id,
+            amount: order.amount / 100,
+            pointsAwarded: order.pointsAwarded,
+            merchantName: order.merchantName,
+            userNickname: order.userNickname || '未知用户',
+            status: order.status,
+            createdAt: order.createdAt
+          })),
+          pendingMerchants: pendingMerchants.map(merchant => ({
+            id: merchant.id,
+            name: merchant.name,
+            contactPerson: merchant.contactPerson,
+            contactPhone: merchant.contactPhone,
+            category: merchant.category,
+            createdAt: merchant.createdAt
+          }))
         },
         system: {
           status: 'healthy',
