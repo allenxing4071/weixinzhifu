@@ -1054,13 +1054,16 @@ app.get('/api/v1/admin/users/:id', async (req, res) => {
       LIMIT 10
     `, [userId]);
     
-    // 统计数据
+    // 统计数据 - 详细的订单统计
     const [orderStats] = await dbConnection.execute(`
       SELECT 
-        COUNT(*) as orderCount,
-        COALESCE(SUM(amount), 0) as totalAmount
+        COUNT(*) as totalOrders,
+        COUNT(CASE WHEN status = 'paid' THEN 1 END) as paidOrders,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pendingOrders,
+        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelledOrders,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as totalAmount
       FROM payment_orders
-      WHERE user_id = ? AND status = 'paid'
+      WHERE user_id = ?
     `, [userId]);
     
     // 商户消费统计（按商户分组）
@@ -1084,10 +1087,7 @@ app.get('/api/v1/admin/users/:id', async (req, res) => {
         orders: orders,
         pointsRecords: pointsRecords,
         merchantStats: merchantStats,
-        stats: {
-          orderCount: orderStats[0].orderCount,
-          totalAmount: orderStats[0].totalAmount
-        }
+        orderStats: orderStats[0]
       }
     });
   } catch (error) {
