@@ -1,0 +1,150 @@
+# 微信支付积分系统 - Cursor AI 项目规则
+
+## 🎯 项目概述
+本项目是一个基于微信支付的积分赠送系统，包含管理后台和微信小程序。
+
+## 📋 当前状态（2025年9月30日）
+
+### ✅ 已完成
+- **管理后台**: 已部署上线 https://www.guandongfang.cn/admin/
+- **后端API**: Node.js + Express，PM2管理，端口3000
+- **数据库**: MySQL 8.0，生产环境运行中
+- **HTTPS**: 阿里云SSL证书已配置
+- **微信小程序**: 代码已完成，等待ICP备案
+
+### ⏰ 等待中
+- **ICP备案**: guandongfang.cn正在审核（阻断核验状态）
+- **微信商户号**: 审核中（约40分钟）
+
+## 🏗 技术架构
+
+### 生产环境
+```
+服务器: 阿里云 8.156.84.226
+域名: www.guandongfang.cn / guandongfang.cn
+前端: /var/www/admin/ (React 18 + Ant Design)
+后端: /root/weixinzhifu/backend/payment-points-api-enhanced.js
+数据库: MySQL weixin_payment
+Nginx: 反向代理 + HTTPS + HTTP/2
+进程管理: PM2
+```
+
+### 前端架构
+- **路径**: admin-frontend/
+- **构建产物**: build/ (已部署)
+- **源代码**: src/App.tsx (单文件应用)
+- **API客户端**: src/services/api.ts
+- **技术栈**: React 18 + TypeScript + Ant Design
+
+### 后端架构
+- **生产环境**: payment-points-api-enhanced.js (JavaScript)
+- **TypeScript源码**: src/ (未使用，有编译错误)
+- **端口**: 3000
+- **数据库配置**: .env文件
+
+### 微信小程序
+- **路径**: frontend/miniprogram/
+- **API地址**: https://www.guandongfang.cn/api/v1
+- **配置文件**: app.js, utils/request.js, utils/request-full.js
+
+## 🚨 重要规则
+
+### 禁止行为
+1. ❌ **不要修改生产环境后端**: payment-points-api-enhanced.js
+2. ❌ **不要使用TypeScript后端**: backend/src/ 有编译错误
+3. ❌ **不要重构已部署代码**: 保持现有功能稳定
+4. ❌ **不要修改Nginx配置**: nginx-guandongfang-fixed.conf 已优化
+
+### 必须遵守
+1. ✅ **延续现有功能**: 只在现有基础上扩展
+2. ✅ **修改前先备份**: git commit 保存当前状态
+3. ✅ **测试后再部署**: 本地测试通过后再上传
+4. ✅ **更新文档**: 所有变更必须更新文档
+
+## 📁 文件路径参考
+
+### 部署脚本
+- `deploy-admin-complete.sh` - 管理后台部署
+- `deploy-backend-complete.sh` - 后端部署
+- `deploy-ssl-cert.sh` - SSL证书部署
+
+### SSH连接
+- 密钥: `weixinpay.pem`
+- 命令: `ssh -i weixinpay.pem root@8.156.84.226`
+
+### 数据库表
+- `users` - 用户表
+- `merchants` - 商户表
+- `payment_orders` - 支付订单表
+- `user_points` - 用户积分表
+- `point_records` - 积分记录表
+- `admin_users` - 管理员表
+
+## 🔧 开发规范
+
+### API开发
+- 路由前缀: `/api/v1/`
+- 管理后台API: `/api/v1/admin/`
+- 小程序API: `/api/v1/auth/`, `/api/v1/payments/`, `/api/v1/points/`
+- 返回格式: `{ success: boolean, data: any, message?: string }`
+
+### 前端开发
+- 相对路径API: `baseURL: '/api/v1'`
+- 通过Nginx代理到后端
+- 分页参数: `page`, `pageSize`
+- 响应格式: `{ success, data, pagination: { page, pageSize, total } }`
+
+### 数据库操作
+- 使用连接池: `mysql2/promise`
+- 防止SQL注入: 使用参数化查询
+- 字段名映射: 注意数据库字段与API字段的转换
+
+## 📚 文档路径
+
+### 核心文档
+- `docs/00-项目实施状态总结.md` - 项目最新状态
+- `docs/00-已完成功能锁定文档.md` - 已完成功能清单
+- `docs/README.md` - 项目说明
+
+### 详细文档
+- `docs/01-需求文档/` - 需求说明
+- `docs/02-技术设计/` - 技术方案
+- `docs/09-部署记录/` - 部署记录
+- `docs/10-操作指南/` - 使用指南
+
+## 🔐 安全注意事项
+
+### 敏感信息
+- SSH密钥: weixinpay.pem (不要提交到git)
+- 数据库密码: 保存在.env文件
+- 微信API密钥: 配置在环境变量
+
+### HTTPS要求
+- 小程序必须使用HTTPS
+- 已配置SSL证书
+- Nginx强制HTTPS重定向
+
+## 🎓 学习资源
+
+### 问题排查
+1. 查看服务日志: `pm2 logs`
+2. 查看Nginx日志: `tail -f /var/log/nginx/error.log`
+3. 数据库连接: 检查.env中的DB_HOST配置
+
+### 常见问题
+- **CORS错误**: 检查前端API baseURL是否为相对路径
+- **404错误**: 检查后端路由是否正确实现
+- **字段不存在**: 检查数据库表结构和字段名
+
+## 🚀 下一步计划
+
+1. ⏰ 等待ICP备案通过
+2. 🔜 微信支付接口对接
+3. 🔜 二维码生成功能
+4. 🔜 小程序真机测试
+
+---
+
+**最后更新**: 2025年9月30日
+**维护人员**: 开发团队
+**联系方式**: 参考项目文档
