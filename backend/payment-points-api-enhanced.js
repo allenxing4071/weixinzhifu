@@ -34,10 +34,8 @@ let dbConnection;
 async function initDatabase() {
   try {
     dbConnection = await mysql.createConnection(dbConfig);
-    console.log('✅ 数据库连接成功 (127.0.0.1:3306)');
     
     const [testResult] = await dbConnection.execute('SELECT 1 as test');
-    console.log('✅ 数据库测试查询成功:', testResult[0]);
     
     return dbConnection;
   } catch (error) {
@@ -147,7 +145,6 @@ app.get('/api/v1/admin/dashboard/stats', (req, res) => {
 app.post('/api/v1/auth/wechat-login', async (req, res) => {
   const { code } = req.body;
   
-  console.log('🔑 微信登录请求, code:', code);
   
   const wechatUser = {
     openid: `wx_openid_${Date.now()}`,
@@ -164,7 +161,6 @@ app.post('/api/v1/auth/wechat-login', async (req, res) => {
   
   const token = generateToken(user);
   
-  console.log('✅ 微信登录成功:', user.nickname);
   
   res.json({
     success: true,
@@ -182,7 +178,6 @@ app.post('/api/v1/auth/wechat-login', async (req, res) => {
 });
 
 app.get('/api/v1/auth/user-info', authenticateToken, (req, res) => {
-  console.log('👤 获取用户信息请求, userId:', req.user.id);
   
   res.json({
     success: true,
@@ -201,7 +196,6 @@ app.get('/api/v1/auth/user-info', authenticateToken, (req, res) => {
 // =====================
 
 app.get('/api/v1/points/balance', authenticateToken, async (req, res) => {
-  console.log('💰 获取积分余额请求, userId:', req.user.id);
   
   try {
     if (dbConnection) {
@@ -212,7 +206,6 @@ app.get('/api/v1/points/balance', authenticateToken, async (req, res) => {
       
       if (pointsData.length > 0) {
         const points = pointsData[0];
-        console.log('✅ 真实积分数据:', points);
         
         res.json({
           success: true,
@@ -230,7 +223,6 @@ app.get('/api/v1/points/balance', authenticateToken, async (req, res) => {
         });
       }
     } else {
-      console.log('⚠️ 数据库离线，使用模拟数据');
       res.json({
         success: true,
         data: { balance: 1288, totalEarned: 2000, totalSpent: 712, expiringPoints: 50 }
@@ -246,7 +238,6 @@ app.get('/api/v1/points/history', authenticateToken, async (req, res) => {
   const { page = 1, pageSize = 20, type = 'all' } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(pageSize);
   
-  console.log('📋 获取积分历史请求, userId:', req.user.id);
   
   try {
     if (dbConnection) {
@@ -266,7 +257,6 @@ app.get('/api/v1/points/history', authenticateToken, async (req, res) => {
         [...params, parseInt(pageSize), offset]
       );
       
-      console.log(`✅ 查询到 ${records.length} 条积分记录`);
       
       // 为每条记录添加支付金额信息
       const enrichedRecords = [];
@@ -310,7 +300,6 @@ app.get('/api/v1/points/history', authenticateToken, async (req, res) => {
         }
       });
     } else {
-      console.log('⚠️ 数据库离线，使用模拟数据');
       const mockRecords = [
         {
           id: 'record_001',
@@ -345,7 +334,6 @@ app.get('/api/v1/payments/history', authenticateToken, async (req, res) => {
   const { page = 1, pageSize = 20, merchantId, status } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(pageSize);
   
-  console.log('💳 获取支付记录请求, userId:', req.user.id);
   
   try {
     if (dbConnection) {
@@ -371,7 +359,6 @@ app.get('/api/v1/payments/history', authenticateToken, async (req, res) => {
         params
       );
       
-      console.log(`✅ 查询到 ${records.length} 条支付记录`);
       
       const formattedRecords = records.map(record => ({
         orderId: record.id,
@@ -402,7 +389,6 @@ app.get('/api/v1/payments/history', authenticateToken, async (req, res) => {
         }
       });
     } else {
-      console.log('⚠️ 数据库离线，使用模拟数据');
       res.json({
         success: true,
         data: {
@@ -418,7 +404,6 @@ app.get('/api/v1/payments/history', authenticateToken, async (req, res) => {
 });
 
 app.get('/api/v1/payments/merchant-stats', authenticateToken, async (req, res) => {
-  console.log('📊 获取商户消费统计, userId:', req.user.id);
   
   try {
     if (dbConnection) {
@@ -438,7 +423,6 @@ app.get('/api/v1/payments/merchant-stats', authenticateToken, async (req, res) =
         [req.user.id]
       );
       
-      console.log(`✅ 查询到 ${stats.length} 个商户的统计数据`);
       
       const formattedStats = stats.map(stat => ({
         merchantId: stat.merchant_id,
@@ -465,7 +449,6 @@ app.get('/api/v1/payments/merchant-stats', authenticateToken, async (req, res) =
         }
       });
     } else {
-      console.log('⚠️ 数据库离线，使用模拟数据');
       res.json({
         success: true,
         data: {
@@ -487,7 +470,6 @@ app.get('/api/v1/payments/merchant-stats', authenticateToken, async (req, res) =
 app.post('/api/v1/payments/create', authenticateToken, async (req, res) => {
   const { merchantId, amount, description = '商户收款' } = req.body;
   
-  console.log('💳 创建支付订单请求, userId:', req.user.id, 'merchantId:', merchantId, 'amount:', amount);
   
   try {
     if (dbConnection) {
@@ -522,7 +504,6 @@ app.post('/api/v1/payments/create', authenticateToken, async (req, res) => {
         merchantName: merchant.merchant_name
       };
       
-      console.log('✅ 支付订单创建成功:', orderId, '预计积分:', pointsAwarded);
       
       res.json({
         success: true,
@@ -554,7 +535,6 @@ app.post('/api/v1/payments/create', authenticateToken, async (req, res) => {
 app.post('/api/v1/payments/mock-success', authenticateToken, async (req, res) => {
   const { orderId } = req.body;
   
-  console.log('🎉 模拟支付成功回调, orderId:', orderId);
   
   try {
     if (dbConnection) {
@@ -598,7 +578,6 @@ app.post('/api/v1/payments/mock-success', authenticateToken, async (req, res) =>
         [order.points_awarded, order.points_awarded, order.user_id]
       );
       
-      console.log('✅ 支付成功处理完成, 积分已发放:', order.points_awarded);
       
       res.json({
         success: true,
@@ -629,7 +608,6 @@ app.post('/api/v1/payments/mock-success', authenticateToken, async (req, res) =>
 app.get('/api/v1/merchants/:id', async (req, res) => {
   const { id } = req.params;
   
-  console.log('🏪 获取商户信息请求, merchantId:', id);
   
   try {
     if (dbConnection) {
@@ -961,13 +939,6 @@ async function startServer() {
     await initDatabase();
     
     app.listen(PORT, () => {
-      console.log('🚀 支付记录和积分API服务启动成功（增强版）');
-      console.log(`📊 管理后台API: http://localhost:${PORT}/api/v1/admin/`);
-      console.log(`📱 小程序API: http://localhost:${PORT}/api/v1/`);
-      console.log(`💳 支付记录API: http://localhost:${PORT}/api/v1/payments/`);
-      console.log(`💰 积分记录API: http://localhost:${PORT}/api/v1/points/`);
-      console.log(`🔍 健康检查: http://localhost:${PORT}/health`);
-      console.log(`⏰ 启动时间: ${new Date().toLocaleString()}`);
     });
   } catch (error) {
     console.error('❌ 服务启动失败:', error);

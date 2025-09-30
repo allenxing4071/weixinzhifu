@@ -87,7 +87,6 @@ class ErrorBoundary extends React.Component<
         error.message?.includes('Cannot set properties of undefined') ||
         error.stack?.includes('chrome-extension') ||
         error.stack?.includes('mfgccjchihfkkindfppnaooecgfneiii')) {
-      console.log('🛡️ React错误边界已忽略Chrome扩展错误:', error.message)
       this.setState({ hasError: false })
       return
     }
@@ -1068,11 +1067,9 @@ const MerchantsPage: React.FC = () => {
 
   const loadMerchants = async () => {
     try {
-      console.log('🔄 开始加载商户列表...')
       const result = await apiRequest('/admin/merchants')
       
       if (result.success) {
-        console.log('✅ 商户数据加载成功:', result.data)
         setMerchants(result.data || [])
         setDataSource(result.dataSource || 'unknown')
         // 移除成功消息提示，只在控制台记录
@@ -1089,11 +1086,9 @@ const MerchantsPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      console.log('📊 开始加载统计数据...')
       const result = await apiRequest('/admin/merchants/stats')
       
       if (result.success) {
-        console.log('✅ 统计数据加载成功:', result.data)
         setStats(result.data)
       } else {
         console.warn('⚠️ 统计数据加载失败:', result.message)
@@ -1139,7 +1134,6 @@ const MerchantsPage: React.FC = () => {
     setDetailModalVisible(true)
     
     try {
-      console.log('🔍 查看商户详情:', merchant.id)
       const result = await apiRequest(`/admin/merchants/${merchant.id}`)
       
       if (result.success) {
@@ -1161,7 +1155,6 @@ const MerchantsPage: React.FC = () => {
   const handleCreateMerchant = async () => {
     setCreateLoading(true)
     try {
-      console.log('🆕 创建新商户:', createForm)
       
       // 验证必填字段
       if (!createForm.merchantName || !createForm.contactPerson || !createForm.contactPhone || !createForm.businessLicense) {
@@ -1280,7 +1273,6 @@ const MerchantsPage: React.FC = () => {
       onOk: async () => {
         setBatchLoading(true)
         try {
-          console.log(`🔄 开始批量${action}商户:`, selectedRowKeys)
           
           const updatePromises = selectedRowKeys.map(merchantId => 
             apiRequest(`/admin/merchants/${merchantId}`, {
@@ -1366,7 +1358,6 @@ const MerchantsPage: React.FC = () => {
       onOk: async () => {
         setBatchLoading(true)
         try {
-          console.log('🗑️ 开始批量删除商户:', selectedRowKeys)
           
           // 并发删除所有选中的商户
           const deletePromises = selectedRowKeys.map(merchantId => 
@@ -1443,7 +1434,6 @@ const MerchantsPage: React.FC = () => {
 
   // 编辑商户
   const handleEditMerchant = (record: any) => {
-    console.log('编辑商户:', record)
     setEditForm({
       id: record.id,
       merchantName: record.merchantName || '',
@@ -1465,7 +1455,6 @@ const MerchantsPage: React.FC = () => {
   const handleSaveEdit = async () => {
     setEditLoading(true)
     try {
-      console.log('💾 保存编辑商户:', editForm)
       
       // 验证必填字段
       if (!editForm.merchantName || !editForm.contactPerson || !editForm.contactPhone || !editForm.businessLicense) {
@@ -1806,7 +1795,6 @@ const MerchantsPage: React.FC = () => {
                 allowClear
                 onSearch={(value) => {
                   // TODO: 实现搜索功能
-                  console.log('搜索:', value)
                 }}
                 style={{ width: '100%' }}
               />
@@ -1817,7 +1805,6 @@ const MerchantsPage: React.FC = () => {
                 allowClear
                 onChange={(value) => {
                   // TODO: 实现状态筛选
-                  console.log('筛选状态:', value)
                 }}
                 style={{ width: '100%' }}
               >
@@ -1833,7 +1820,6 @@ const MerchantsPage: React.FC = () => {
                 allowClear
                 onChange={(value) => {
                   // TODO: 实现类型筛选
-                  console.log('筛选类型:', value)
                 }}
                 style={{ width: '100%' }}
               >
@@ -1847,7 +1833,6 @@ const MerchantsPage: React.FC = () => {
                 allowClear
                 onChange={(value) => {
                   // TODO: 实现二维码筛选
-                  console.log('筛选二维码:', value)
                 }}
                 style={{ width: '100%' }}
               >
