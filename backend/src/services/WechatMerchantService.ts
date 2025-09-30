@@ -294,8 +294,8 @@ export class WechatMerchantService {
 // 真实微信支付配置
 export const createWechatMerchantService = (): WechatMerchantService => {
   const config: WechatPayConfig = {
-    appId: process.env.WECHAT_APP_ID || 'wx9bed12ef0904d035',
-    mchId: process.env.WECHAT_SERVICE_MCH_ID || '1727765161',
+    appId: process.env.WECHAT_APP_ID || 'wx07b7fe4a9e38dac3',
+    mchId: process.env.WECHAT_SERVICE_MCH_ID || '1728807931',
     apiV3Key: process.env.WECHAT_API_V3_KEY || 'abcd1234efgh5678ijkl9012mnop3456',
     privateKey: process.env.WECHAT_PRIVATE_KEY || './certs/wechat_cert.pem',
     publicKey: process.env.WECHAT_PUBLIC_KEY || './certs/wechat_cert.pem',

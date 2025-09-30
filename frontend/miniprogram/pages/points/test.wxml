@@ -1,0 +1,94 @@
+<!-- 积分页面测试模板 -->
+<view class="points-container">
+  <!-- 顶部余额卡片 -->
+  <view class="balance-card">
+    <view class="balance-main">
+      <text class="balance-label">当前积分</text>
+      <text class="balance-value">{{pointsBalance}}</text>
+    </view>
+    <view class="balance-stats">
+      <view class="stat-item">
+        <text class="stat-value">{{totalEarned}}</text>
+        <text class="stat-label">累计获得</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{totalSpent}}</text>
+        <text class="stat-label">累计消费</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 测试数据显示 -->
+  <view class="test-info">
+    <text>积分余额: {{pointsBalance}}</text>
+    <text>累计获得: {{totalEarned}}</text>
+    <text>累计消费: {{totalSpent}}</text>
+    <text>记录数量: {{pointsHistory.length}}</text>
+    <text>当前标签: {{activeTab}}</text>
+  </view>
+
+  <!-- 标签页导航 -->
+  <view class="tab-nav">
+    <view 
+      class="tab-item {{activeTab === 'balance' ? 'active' : ''}}"
+      data-tab="balance"
+      bindtap="onTabChange"
+    >余额</view>
+    <view 
+      class="tab-item {{activeTab === 'history' ? 'active' : ''}}"
+      data-tab="history"
+      bindtap="onTabChange"
+    >积分记录</view>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="tab-content">
+    <!-- 余额详情 -->
+    <view class="content-panel" wx:if="{{activeTab === 'balance'}}">
+      <view class="info-card">
+        <text class="info-text">积分余额：{{pointsBalance}}分</text>
+        <text class="info-text">累计获得：{{totalEarned}}分</text>
+        <text class="info-text">累计消费：{{totalSpent}}分</text>
+      </view>
+    </view>
+
+    <!-- 积分记录 -->
+    <view class="content-panel" wx:if="{{activeTab === 'history'}}">
+      <view class="record-list">
+        <view class="record-item" wx:for="{{pointsHistory}}" wx:key="id">
+          <view class="record-main">
+            <view class="record-title">{{item.merchantName}}</view>
+            <view class="record-desc">{{item.description}}</view>
+          </view>
+          <view class="record-side">
+            <view class="record-points {{item.pointsChange > 0 ? 'positive' : 'negative'}}">
+              {{item.pointsChange > 0 ? '+' : ''}}{{item.pointsChange}}
+            </view>
+            <view class="record-time">{{item.formattedTime}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+</view>
+
+<style>
+.test-info {
+  background: #f0f0f0;
+  padding: 20rpx;
+  margin: 20rpx 0;
+  border-radius: 10rpx;
+}
+
+.test-info text {
+  display: block;
+  margin: 5rpx 0;
+  font-size: 24rpx;
+  color: #333;
+}
+</style>

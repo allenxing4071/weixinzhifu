@@ -17,16 +17,16 @@ export const config = {
   
   // 微信支付服务商配置
   wechat: {
-    appId: process.env.WECHAT_APP_ID || 'wx9bed12ef0904d035',
-    appSecret: process.env.WECHAT_APP_SECRET || 'd0169fe1d4b9441e7b180d814e868553',
-    mchId: process.env.WECHAT_SERVICE_MCH_ID || '1727765161', // 服务商商户号
+    appId: process.env.WECHAT_APP_ID || 'wx07b7fe4a9e38dac3',
+    appSecret: process.env.WECHAT_APP_SECRET || '0445537eb37f93f75fdd4d700a914124',
+    mchId: process.env.WECHAT_SERVICE_MCH_ID || '1728807931', // 服务商商户号
     apiV3Key: process.env.WECHAT_API_V3_KEY || 'abcd1234efgh5678ijkl9012mnop3456',
     privateKey: process.env.WECHAT_PRIVATE_KEY || './certs/wechat_cert.pem',
     publicKey: process.env.WECHAT_PUBLIC_KEY || './certs/wechat_cert.pem',
     serialNo: process.env.WECHAT_SERIAL_NO || 'VyDxTbGc5XuLcSffPZPVhvBBJDM',
     notifyUrl: process.env.WECHAT_NOTIFY_URL || 'https://api.guandongfang.cn/api/v1/payments/callback',
     serviceProviderMode: process.env.WECHAT_SERVICE_PROVIDER_MODE === 'true',
-    defaultSubMchId: process.env.WECHAT_DEFAULT_SUB_MCH_ID || '1727765161'
+    defaultSubMchId: process.env.WECHAT_DEFAULT_SUB_MCH_ID || '1728807931'
   },
   
   // JWT配置

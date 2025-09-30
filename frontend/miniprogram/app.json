@@ -15,11 +15,7 @@
     "enablePullDownRefresh": false
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#ff6b35",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
-    "fontSize": "16px",
+    "custom": true,
     "list": [
       {
         "pagePath": "pages/points/index",

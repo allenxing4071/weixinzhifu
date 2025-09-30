@@ -1,5 +1,4 @@
 // profile/index.js - 生产环境版本
-const app = getApp()
 
 Page({
   data: {
@@ -16,28 +15,36 @@ Page({
       totalSpent: 0,
       monthlyEarned: 0
     },
+    paymentInfo: {
+      totalOrders: 0,
+      totalAmount: '0.00'
+    },
+    paymentHistory: [],
+    showPaymentHistory: false,
+    loadingHistory: false,
+    version: '1.0.0',
     loading: true,
     menuItems: [
       {
-        icon: '/images/icons/history.png',
+        icon: '📊',
         title: '积分记录',
         desc: '查看积分获得和使用记录',
         url: '/pages/points/history'
       },
       {
-        icon: '/images/icons/order.png',
+        icon: '💳',
         title: '支付记录',
         desc: '查看支付订单历史',
         url: '/pages/payment/history'
       },
       {
-        icon: '/images/icons/help.png',
+        icon: '❓',
         title: '帮助中心',
         desc: '常见问题和使用指南',
         action: 'showHelp'
       },
       {
-        icon: '/images/icons/about.png',
+        icon: 'ℹ️',
         title: '关于我们',
         desc: '了解积分助手',
         action: 'showAbout'
@@ -51,18 +58,72 @@ Page({
 
   onShow() {
     console.log('👤 个人中心页面显示')
+    console.log('🔍 检查全局数据:', getApp().globalData)
     
-    // 检查登录状态
-    if (!app.isLoggedIn()) {
-      this.showLoginPrompt()
-      return
+    // 更新tabBar选中状态
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({
+        selected: 1
+      })
     }
     
-    this.loadUserData()
+    // 检查是否为演示模式
+    if (getApp().globalData.demoMode) {
+      console.log('🎮 演示模式：使用演示用户数据')
+      this.loadDemoUserData()
+    } else {
+      console.log('🔗 真实模式：调用API加载数据')
+      this.loadUserData()
+    }
   },
 
   onPullDownRefresh() {
     this.refreshData()
+  },
+
+  /**
+   * 加载演示用户数据
+   */
+  loadDemoUserData() {
+    console.log('🎮 加载演示用户数据...')
+    
+    const demoUserInfo = {
+      nickname: '测试用户',
+      avatar: '/images/demo-avatar.png',
+      phone: '138****8888',
+      level: 3,
+      levelName: '黄金会员',
+      joinDate: '2024-08-15',
+      totalSaves: 458.60
+    }
+    
+    const demoPointsInfo = {
+      balance: 1580,
+      totalEarned: 1630,
+      totalSpent: 50,
+      monthlyEarned: 388
+    }
+    
+    const demoPaymentInfo = {
+      totalOrders: 2,
+      totalAmount: '238.00'
+    }
+    
+    this.setData({
+      userInfo: demoUserInfo,
+      pointsInfo: demoPointsInfo,
+      paymentInfo: demoPaymentInfo,
+      loading: false
+    })
+    
+    console.log('✅ 演示用户数据加载完成')
+    
+    // 显示演示模式提示
+    wx.showToast({
+      title: '演示模式已激活',
+      icon: 'success',
+      duration: 1500
+    })
   },
 
   /**
@@ -351,6 +412,228 @@ Page({
         icon: 'error'
       })
     }
+  },
+
+  /**
+   * 切换支付记录显示状态
+   */
+  togglePaymentHistory() {
+    const showPaymentHistory = !this.data.showPaymentHistory
+    this.setData({ showPaymentHistory })
+    
+    // 如果是首次展开且没有支付记录，则加载数据
+    if (showPaymentHistory && (!this.data.paymentHistory || this.data.paymentHistory.length === 0)) {
+      this.loadPaymentHistory()
+    }
+  },
+
+  /**
+   * 加载支付记录
+   */
+  async loadPaymentHistory() {
+    try {
+      this.setData({ loadingHistory: true })
+      
+      // 演示模式下加载演示数据
+      if (getApp().globalData.demoMode) {
+        const demoPaymentHistory = [
+          {
+            id: 'pay_demo_001',
+            orderNo: 'PAY20241227001',
+            merchantName: '成都市中鑫博海国际酒业贸易有限公司',
+            description: '微信支付',
+            formattedAmount: '88.00',
+            pointsAwarded: 88,
+            status: 'completed',
+            statusText: '支付成功',
+            formattedTime: '12/27 14:30'
+          },
+          {
+            id: 'pay_demo_002',
+            orderNo: 'PAY20241226002',
+            merchantName: '仁寿县怀仁街道云锦汇会所（个体工商户）',
+            description: '微信支付',
+            formattedAmount: '150.00',
+            pointsAwarded: 150,
+            status: 'completed',
+            statusText: '支付成功',
+            formattedTime: '12/26 19:45'
+          }
+        ]
+        
+        this.setData({ 
+          paymentHistory: demoPaymentHistory,
+          loadingHistory: false
+        })
+        return
+      }
+      
+      // 调用真实API获取支付记录
+      const response = await getApp().requestAPI('/payments/history', 'GET', {
+        page: 1,
+        pageSize: 10
+      })
+      
+      if (response.success) {
+        const records = (response.data.records || []).map(record => ({
+          id: record.orderId,
+          orderNo: record.orderNo,
+          merchantName: record.merchantName,
+          description: record.description || '微信支付',
+          formattedAmount: (record.amount / 100).toFixed(2),
+          pointsAwarded: record.pointsEarned,
+          status: record.status,
+          statusText: record.status === 'completed' ? '支付成功' : '处理中',
+          formattedTime: this.formatTime(record.createdAt)
+        }))
+        
+        this.setData({ 
+          paymentHistory: records,
+          loadingHistory: false
+        })
+      }
+      
+    } catch (error) {
+      console.error('❌ 加载支付记录失败:', error)
+      this.setData({ loadingHistory: false })
+      
+      wx.showToast({
+        title: '加载失败',
+        icon: 'error'
+      })
+    }
+  },
+
+  /**
+   * 查看支付详情
+   */
+  viewPaymentDetail(e) {
+    const order = e.currentTarget.dataset.order
+    
+    wx.showModal({
+      title: '支付详情',
+      content: `商户：${order.merchantName}\n订单号：${order.orderNo}\n金额：¥${order.formattedAmount}\n积分：+${order.pointsAwarded}\n时间：${order.formattedTime}`,
+      showCancel: false
+    })
+  },
+
+  /**
+   * 跳转到完整支付记录页面
+   */
+  goToFullHistory() {
+    wx.navigateTo({
+      url: '/pages/payment/history'
+    })
+  },
+
+  /**
+   * 跳转到积分页面
+   */
+  goToPoints() {
+    wx.switchTab({
+      url: '/pages/points/index'
+    })
+  },
+
+  /**
+   * 跳转到积分商城（暂未开放）
+   */
+  goToMall() {
+    wx.showToast({
+      title: '即将上线',
+      icon: 'none'
+    })
+  },
+
+  /**
+   * 格式化时间
+   */
+  formatTime(timeStr) {
+    const date = new Date(timeStr)
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = date.getHours()
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${month}/${day} ${hours}:${minutes}`
+  },
+
+  /**
+   * 显示用户协议
+   */
+  showUserAgreement() {
+    wx.showModal({
+      title: '用户协议',
+      content: '这里是用户协议内容...',
+      showCancel: false
+    })
+  },
+
+  /**
+   * 显示隐私政策
+   */
+  showPrivacyPolicy() {
+    wx.showModal({
+      title: '隐私政策',
+      content: '这里是隐私政策内容...',
+      showCancel: false
+    })
+  },
+
+  /**
+   * 处理登录
+   */
+  handleLogin() {
+    // 如果是演示模式，直接设置演示用户
+    if (getApp().globalData.demoMode) {
+      getApp().setupDemoMode()
+      this.loadDemoUserData()
+      return
+    }
+    
+    // 否则执行真实登录
+    getApp().doWechatLogin()
+  },
+
+  /**
+   * 处理退出登录
+   */
+  handleLogout() {
+    wx.showModal({
+      title: '确认退出',
+      content: '确定要退出登录吗？',
+      success: (res) => {
+        if (res.confirm) {
+          getApp().clearLoginState()
+          
+          this.setData({
+            userInfo: null,
+            pointsInfo: {
+              balance: 0,
+              totalEarned: 0,
+              totalSpent: 0,
+              monthlyEarned: 0
+            },
+            paymentHistory: [],
+            showPaymentHistory: false
+          })
+          
+          wx.showToast({
+            title: '已退出登录',
+            icon: 'success'
+          })
+        }
+      }
+    })
+  },
+
+  /**
+   * 编辑个人资料
+   */
+  editProfile() {
+    wx.showToast({
+      title: '功能开发中',
+      icon: 'none'
+    })
   },
 
   /**

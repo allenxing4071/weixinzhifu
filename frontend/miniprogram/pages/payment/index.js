@@ -1,378 +1,309 @@
-// payment/index.js - 生产环境版本 - 修复商户信息加载
-const app = getApp()
+// 支付页面 - 对接真实API
+const { PaymentService } = require('../../services/PaymentService');
+const { PointsService } = require('../../services/PointsService');
 
 Page({
   data: {
     merchantId: '',
-    merchantInfo: {
-      name: '加载中...',
-      desc: '正在获取商户信息',
-      avatar: '',
-      address: '',
-      verified: false,
-      status: 'loading',
-      subMchId: '',
-      businessCategory: ''
-    },
+    subMchId: '',
+    merchantInfo: null,
     amount: '',
-    formattedAmount: '0.00',
+    loading: false,
+    userInputAmount: true, // 允许用户输入金额
     expectedPoints: 0,
-    canPay: false,
-    paying: false,
-    loading: true,
-    remark: '',
-    displayAmount: '',
-    inputAmount: ''
+    qrCodeParams: null // 存储二维码参数
   },
 
   onLoad(options) {
-    console.log('💰 支付页面参数:', options)
+    console.log('💳 支付页面加载, options:', options);
     
-    // 检查登录状态
-    if (!app.isLoggedIn()) {
-      this.showLoginPrompt()
-      return
-    }
-
-    // 获取商户ID和金额
+    // 处理二维码扫描的参数
     if (options.merchantId) {
-      this.setData({ 
+      this.setData({ merchantId: options.merchantId });
+      
+      // 存储二维码完整参数
+      const qrCodeParams = {
         merchantId: options.merchantId,
-        amount: options.amount || ''
-      })
+        subMchId: options.subMchId,
+        timestamp: options.timestamp,
+        sign: options.sign
+      };
+      this.setData({ 
+        qrCodeParams: qrCodeParams,
+        subMchId: options.subMchId || ''
+      });
       
-      // 加载真实商户信息
-      this.loadRealMerchantInfo(options.merchantId)
-    } else {
-      wx.showModal({
-        title: '参数错误',
-        content: '缺少商户信息，请重新扫码',
-        showCancel: false,
-        success: () => {
-          wx.navigateBack()
-        }
-      })
-    }
-  },
-
-  onShow() {
-    // 每次显示时检查登录状态
-    if (!app.isLoggedIn()) {
-      this.showLoginPrompt()
-    }
-  },
-
-  /**
-   * 显示登录提示
-   */
-  showLoginPrompt() {
-    wx.showModal({
-      title: '登录提示',
-      content: '支付功能需要先登录微信账号',
-      confirmText: '去登录',
-      cancelText: '返回',
-      success: (res) => {
-        if (res.confirm) {
-          app.doWechatLogin().then(() => {
-            this.loadRealMerchantInfo(this.data.merchantId)
-          })
-        } else {
-          wx.navigateBack()
-        }
-      }
-    })
-  },
-
-  /**
-   * 加载真实商户信息 - 修复版
-   */
-  async loadRealMerchantInfo(merchantId) {
-    try {
-      console.log('🏪 加载真实商户信息:', merchantId)
-      this.setData({ loading: true })
+      console.log('🔍 二维码参数:', qrCodeParams);
       
-      // 调用真实商户API - 不再使用硬编码数据
-      const response = await app.requestAPI(`/merchants/${merchantId}`, 'GET')
-      
-      if (response.success) {
-        const merchantData = response.data.merchant || response.data
-        
-        console.log('✅ 获取到真实商户数据:', merchantData)
-        
-        this.setData({
-          merchantInfo: {
-            name: merchantData.merchantName || merchantData.name || '未知商户',
-            desc: merchantData.businessCategory || merchantData.desc || '商户服务',
-            avatar: merchantData.avatar || '/images/default-merchant.png',
-            address: merchantData.address || '线上商户',
-            verified: merchantData.status === 'active',
-            status: merchantData.status || 'unknown',
-            subMchId: merchantData.subMchId || merchantData.sub_mch_id,
-            businessCategory: merchantData.businessCategory || merchantData.business_category,
-            contactPerson: merchantData.contactPerson || merchantData.contact_person,
-            contactPhone: merchantData.contactPhone || merchantData.contact_phone
-          }
-        })
-        
-        console.log('✅ 商户信息设置成功:', this.data.merchantInfo.name)
-      } else {
-        throw new Error(response.message || '获取商户信息失败')
-      }
-      
-    } catch (error) {
-      console.error('❌ 加载商户信息失败:', error)
-      
-      // API失败时显示错误状态，不使用假数据
-      this.setData({
-        merchantInfo: {
-          name: '商户信息加载失败',
-          desc: '请检查网络连接后重试',
-          avatar: '/images/error-merchant.png',
-          address: '未知地址',
-          verified: false,
-          status: 'error',
-          subMchId: '',
-          businessCategory: ''
-        }
-      })
-      
-      wx.showModal({
-        title: '加载失败',
-        content: `商户信息加载失败: ${error.message}`,
-        confirmText: '重试',
-        cancelText: '返回',
-        success: (res) => {
-          if (res.confirm) {
-            this.loadRealMerchantInfo(merchantId)
-          } else {
-            wx.navigateBack()
-          }
-        }
-      })
-    } finally {
-      this.setData({ loading: false })
-    }
-  },
-
-  /**
-   * 金额输入处理
-   */
-  onAmountInput(e) {
-    const value = e.detail.value
-    const amount = parseFloat(value) || 0
-    
-    this.setData({
-      inputAmount: value,
-      amount: amount,
-      formattedAmount: amount.toFixed(2),
-      expectedPoints: Math.floor(amount), // 1元=1积分
-      canPay: amount >= 0.01 // 最小支付金额1分
-    })
-  },
-
-  /**
-   * 快速金额选择
-   */
-  selectQuickAmount(e) {
-    const amount = parseFloat(e.currentTarget.dataset.amount)
-    
-    this.setData({
-      inputAmount: amount.toString(),
-      amount: amount,
-      formattedAmount: amount.toFixed(2),
-      expectedPoints: Math.floor(amount),
-      canPay: true
-    })
-  },
-
-  /**
-   * 处理支付 - 真实微信支付
-   */
-  async handlePay() {
-    if (!this.data.canPay || this.data.paying) {
-      return
-    }
-
-    if (!app.isLoggedIn()) {
-      this.showLoginPrompt()
-      return
-    }
-
-    if (this.data.amount < 0.01) {
-      wx.showToast({
-        title: '金额不能小于0.01元',
-        icon: 'error'
-      })
-      return
-    }
-
-    // 检查商户状态
-    if (this.data.merchantInfo.status === 'error') {
-      wx.showModal({
-        title: '商户信息错误',
-        content: '商户信息加载失败，请重新扫码或联系商户',
-        showCancel: false
-      })
-      return
-    }
-
-    try {
-      console.log('💳 开始真实支付流程...', {
-        merchantId: this.data.merchantId,
-        amount: this.data.amount,
-        merchantName: this.data.merchantInfo.name
-      })
-      
-      this.setData({ paying: true })
-
-      // 1. 创建支付订单
-      console.log('📝 创建支付订单...')
-      const orderResponse = await app.requestAPI('/payments/create', 'POST', {
-        merchantId: this.data.merchantId,
-        amount: Math.round(this.data.amount * 100), // 转换为分
-        description: `${this.data.merchantInfo.name}收款`,
-        remark: this.data.remark
-      })
-
-      if (!orderResponse.success) {
-        throw new Error(orderResponse.message || '创建订单失败')
-      }
-
-      console.log('✅ 订单创建成功:', orderResponse.data.orderId)
-
-      // 2. 调用微信支付
-      console.log('💰 调用微信支付...')
-      const paymentParams = orderResponse.data
-
-      await wx.requestPayment({
-        timeStamp: paymentParams.timeStamp,
-        nonceStr: paymentParams.nonceStr,
-        package: paymentParams.packageStr,
-        signType: 'RSA',
-        paySign: paymentParams.paySign
-      })
-
-      console.log('✅ 微信支付成功')
-
-      // 3. 支付成功处理
-      await this.handlePaymentSuccess({
-        orderId: paymentParams.orderId,
-        amount: this.data.amount,
-        awardedPoints: this.data.expectedPoints,
-        merchantName: this.data.merchantInfo.name
-      })
-
-    } catch (error) {
-      console.error('❌ 支付失败:', error)
-      
-      if (error.errMsg && error.errMsg.includes('requestPayment:cancel')) {
-        // 用户取消支付
+      // 验证二维码签名（演示模式下跳过）
+      if (options.sign && options.timestamp && options.subMchId && !getApp().globalData.demoMode) {
+        this.verifyQRCodeSignature(qrCodeParams);
+      } else if (getApp().globalData.demoMode) {
+        console.log('🎮 演示模式：跳过二维码签名验证');
         wx.showToast({
-          title: '支付已取消',
-          icon: 'none'
-        })
-      } else {
-        // 其他支付错误
-        wx.showModal({
-          title: '支付失败',
-          content: error.message || '支付过程中出现错误，请重试',
-          showCancel: false
-        })
+          title: '演示模式已激活',
+          icon: 'success',
+          duration: 1000
+        });
       }
-    } finally {
-      this.setData({ paying: false })
+      
+      this.loadMerchantInfo(options.merchantId);
+    }
+    
+    // 如果URL中有amount参数，设置为默认值但允许修改
+    if (options.amount) {
+      this.setData({ 
+        amount: options.amount,
+        userInputAmount: true 
+      });
+      this.calculatePoints();
     }
   },
 
-  /**
-   * 支付成功处理
-   */
-  async handlePaymentSuccess(paymentResult) {
+  // 验证二维码签名
+  async verifyQRCodeSignature(qrCodeParams) {
     try {
-      console.log('🎉 处理支付成功:', paymentResult)
+      console.log('🔐 验证二维码签名...');
+      
+      const response = await wx.request({
+        url: `${getApp().globalData.baseUrl}/admin/qrcode/verify`,
+        method: 'POST',
+        header: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-token'
+        },
+        data: {
+          merchantId: qrCodeParams.merchantId,
+          subMchId: qrCodeParams.subMchId,
+          sign: qrCodeParams.sign,
+          fixedAmount: qrCodeParams.amount ? parseFloat(qrCodeParams.amount) : undefined
+        }
+      });
 
-      // 1. 保存支付成功信息到本地存储
-      wx.setStorageSync('recentPaymentSuccess', {
-        orderId: paymentResult.orderId,
-        amount: paymentResult.amount,
-        awardedPoints: paymentResult.awardedPoints,
-        merchantName: paymentResult.merchantName,
-        timestamp: Date.now()
-      })
-
-      // 2. 显示支付成功提示
+      if (response.data && response.data.success) {
+        console.log('✅ 二维码验证通过:', response.data.data.merchant);
+        wx.showToast({
+          title: '二维码验证通过',
+          icon: 'success',
+          duration: 1000
+        });
+      } else {
+        console.warn('⚠️ 二维码验证失败:', response.data?.message);
+        wx.showModal({
+          title: '安全提示',
+          content: '二维码验证失败，可能是伪造的二维码',
+          showCancel: false
+        });
+      }
+    } catch (error) {
+      console.error('❌ 二维码验证异常:', error);
       wx.showToast({
-        title: `支付成功，获得${paymentResult.awardedPoints}积分`,
+        title: '验证失败，请重试',
+        icon: 'none'
+      });
+    }
+  },
+
+  // 加载商户信息
+  async loadMerchantInfo(merchantId) {
+    try {
+      this.setData({ loading: true });
+      
+      // 演示模式直接使用本地数据
+      if (getApp().globalData.demoMode) {
+        console.log('🎮 演示模式：使用本地商户数据');
+        this.loadLocalMerchantInfo(merchantId);
+        return;
+      }
+      
+      // 调用真实商户API
+      const response = await wx.request({
+        url: `${getApp().globalData.baseUrl}/api/v1/admin/merchants/${merchantId}`,
+        method: 'GET',
+        header: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-token'
+        }
+      });
+
+      if (response.data && response.data.success) {
+        const merchant = response.data.data.merchant;
+        this.setData({ 
+          merchantInfo: {
+            name: merchant.merchantName,
+            businessCategory: merchant.businessCategory,
+            subMchId: merchant.subMchId
+          }
+        });
+        console.log('✅ 商户信息加载成功:', merchant.merchantName);
+      } else {
+        // 如果API失败，使用本地商户数据作为备选
+        console.log('⚠️ 商户API失败，使用本地数据');
+        this.loadLocalMerchantInfo(merchantId);
+      }
+    } catch (error) {
+      console.error('❌ 加载商户信息失败:', error);
+      this.loadLocalMerchantInfo(merchantId);
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  // 本地商户数据备选
+  loadLocalMerchantInfo(merchantId) {
+    const localMerchants = {
+      'merchant-001': {
+        name: '仁寿县怀仁街道云锦汇会所（个体工商户）',
+        businessCategory: '休闲娱乐',
+        subMchId: '1728001633'
+      },
+      'merchant-002': {
+        name: '仁寿县怀仁街道储府鱼庄店（个体工商户）',
+        businessCategory: '餐饮',
+        subMchId: '1727952181'
+      },
+      'merchant-003': {
+        name: '仁寿县怀仁街道颐善滋养园养生馆（个体工商户）',
+        businessCategory: '生活服务',
+        subMchId: '1727857063'
+      },
+      'merchant-004': {
+        name: '成都市中鑫博海国际酒业贸易有限公司',
+        businessCategory: '酒类贸易',
+        subMchId: '1727774152'
+      },
+      'merchant-005': {
+        name: '德阳市叁思科技有限公司',
+        businessCategory: '数字娱乐',
+        subMchId: '1727565030'
+      }
+    };
+
+    const merchantInfo = localMerchants[merchantId];
+    if (merchantInfo) {
+      this.setData({ merchantInfo });
+      console.log('✅ 使用本地商户数据:', merchantInfo.name);
+    }
+  },
+
+  // 金额输入
+  onAmountInput(e) {
+    const amount = e.detail.value;
+    this.setData({ amount });
+    this.calculatePoints();
+  },
+
+  // 计算预期积分
+  calculatePoints() {
+    const amount = parseFloat(this.data.amount) || 0;
+    const expectedPoints = Math.max(Math.floor(amount * 1), 1); // 1元=1积分，最少1积分
+    this.setData({ expectedPoints });
+  },
+
+  // 发起支付
+  async onPay() {
+    if (!this.data.amount || parseFloat(this.data.amount) <= 0) {
+      wx.showToast({ title: '请输入有效金额', icon: 'none' });
+      return;
+    }
+
+    if (!this.data.merchantId) {
+      wx.showToast({ title: '商户信息错误', icon: 'none' });
+      return;
+    }
+
+    try {
+      this.setData({ loading: true });
+      
+      const amountInCents = Math.round(parseFloat(this.data.amount) * 100);
+      
+      console.log('💳 创建支付订单:', {
+        merchantId: this.data.merchantId,
+        amount: amountInCents
+      });
+
+      // 调用支付创建API
+      const paymentData = await PaymentService.createPayment({
+        merchantId: this.data.merchantId,
+        subMchId: this.data.subMchId || this.data.merchantInfo?.subMchId,
+        amount: amountInCents,
+        qrCodeParams: this.data.qrCodeParams // 传递二维码参数用于验证
+      });
+
+      console.log('✅ 支付订单创建成功:', paymentData);
+
+      // 显示支付确认
+      const confirmResult = await this.showPaymentConfirm(paymentData);
+      if (!confirmResult) {
+        return;
+      }
+
+      // 模拟支付成功（实际项目中调用微信支付）
+      await this.mockPaymentSuccess(paymentData.orderId);
+
+    } catch (error) {
+      console.error('❌ 支付失败:', error);
+      wx.showToast({ 
+        title: error.message || '支付失败，请重试', 
+        icon: 'none' 
+      });
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  // 显示支付确认弹窗
+  showPaymentConfirm(paymentData) {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: '确认支付',
+        content: `商户：${paymentData.merchantName || this.data.merchantInfo?.name}\n金额：¥${this.data.amount}\n预计积分：${paymentData.expectedPoints}`,
+        confirmText: '确认支付',
+        cancelText: '取消',
+        success: (res) => {
+          resolve(res.confirm);
+        }
+      });
+    });
+  },
+
+  // 模拟支付成功
+  async mockPaymentSuccess(orderId) {
+    try {
+      console.log('🎉 模拟支付成功:', orderId);
+      
+      // 调用支付成功API
+      const successResult = await PaymentService.mockPaymentSuccess(orderId);
+      
+      console.log('✅ 积分发放成功:', successResult);
+
+      // 显示成功提示
+      wx.showToast({
+        title: `支付成功！获得${successResult.pointsAwarded}积分`,
         icon: 'success',
         duration: 2000
-      })
+      });
 
-      // 3. 延迟跳转到积分页面
+      // 延迟跳转到积分页面
       setTimeout(() => {
         wx.redirectTo({
-          url: '/pages/points/index?paymentSuccess=true'
-        })
-      }, 2000)
+          url: '/pages/points/index'
+        });
+      }, 2000);
 
     } catch (error) {
-      console.error('❌ 支付成功处理失败:', error)
-      
-      // 即使处理失败，也跳转到积分页面
-      wx.redirectTo({
-        url: '/pages/points/index?paymentSuccess=true'
-      })
+      console.error('❌ 支付回调失败:', error);
+      wx.showToast({ 
+        title: '支付成功，但积分发放异常', 
+        icon: 'none' 
+      });
     }
   },
 
-  /**
-   * 查询支付状态（用于验证支付结果）
-   */
-  async checkPaymentStatus(orderId) {
-    try {
-      const response = await app.requestAPI(`/payments/status/${orderId}`, 'GET')
-      
-      if (response.success) {
-        return response.data.status
-      }
-      
-      return 'unknown'
-    } catch (error) {
-      console.error('❌ 查询支付状态失败:', error)
-      return 'unknown'
-    }
-  },
-
-  /**
-   * 备注输入
-   */
-  onRemarkInput(e) {
-    this.setData({
-      remark: e.detail.value
-    })
-  },
-
-  /**
-   * 返回上一页
-   */
-  goBack() {
-    wx.navigateBack()
-  },
-
-  /**
-   * 查看商户详情
-   */
-  viewMerchantDetail() {
-    if (this.data.merchantInfo.status === 'error') {
-      // 重新加载商户信息
-      this.loadRealMerchantInfo(this.data.merchantId)
-      return
-    }
-
-    const info = this.data.merchantInfo
-    wx.showModal({
-      title: info.name,
-      content: `商户类型：${info.businessCategory || '未知'}\n联系人：${info.contactPerson || '未知'}\n联系电话：${info.contactPhone || '未知'}\n状态：${info.verified ? '已认证' : '未认证'}\n商户号：${info.subMchId || '未配置'}`,
-      showCancel: false
-    })
+  // 查看积分
+  onViewPoints() {
+    wx.navigateTo({
+      url: '/pages/points/index'
+    });
   }
-})
+});

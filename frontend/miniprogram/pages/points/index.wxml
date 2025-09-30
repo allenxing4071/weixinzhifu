@@ -1,178 +1,237 @@
-<!--points/index.wxml-->
-<view class="points-container">
-  
-  <!-- 积分余额卡片 -->
-  <view class="balance-card">
-    <view class="balance-header">
+<!-- 高端积分页面 - 中文版本 -->
+<view class="points-premium-container">
+  <!-- 高端余额头部 -->
+  <view class="premium-balance-header">
+    <view class="header-gradient"></view>
+    <view class="balance-content">
       <view class="balance-title">我的积分</view>
-      <view class="balance-refresh" bind:tap="refreshBalance">
-        <view class="refresh-icon {{refreshing ? 'rotating' : ''}}">🔄</view>
+      <view class="balance-main-display">
+        <text class="balance-number">{{pointsBalance || 0}}</text>
       </view>
-    </view>
-    
-    <view class="balance-main">
-      <view class="balance-number">{{formattedBalance}}</view>
-      <view class="balance-label">可用积分</view>
-      <view class="balance-value">约等于¥{{pointsValue}}元</view>
-    </view>
-    
-    <view class="balance-stats">
-      <view class="stat-item">
-        <view class="stat-value">{{balanceInfo.totalEarned || 0}}</view>
-        <view class="stat-label">累计获得</view>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <view class="stat-value">{{balanceInfo.totalSpent || 0}}</view>
-        <view class="stat-label">累计消费</view>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <view class="stat-value">{{balanceInfo.expiringPoints || 0}}</view>
-        <view class="stat-label">即将过期</view>
-      </view>
-    </view>
-    
-    <!-- 积分服务区域 -->
-    <view class="services-section">
-      <view class="service-header">
-        <view class="service-title">🎁 积分服务</view>
-        <view class="service-desc">使用微信扫一扫支付，立即获得积分奖励</view>
-      </view>
+      <view class="balance-subtitle">当前可用余额</view>
       
-      <view class="services-grid">
-        <view class="service-card mall-card" bind:tap="goToMall">
-          <view class="card-icon">🏬</view>
-          <view class="card-content">
-            <view class="card-title">积分商城</view>
-            <view class="card-desc">使用积分兑换商品</view>
-            <view class="card-status">即将上线</view>
-          </view>
-          <view class="card-arrow">→</view>
+      <!-- Premium Stats Grid -->
+      <view class="premium-stats-grid">
+        <view class="premium-stat-card">
+          <view class="stat-icon">📈</view>
+          <view class="stat-number">{{totalEarned || 0}}</view>
+          <view class="stat-label">累计获得</view>
         </view>
-        
-        <view class="service-card rules-card" bind:tap="showPointsRules">
-          <view class="card-icon">📝</view>
-          <view class="card-content">
-            <view class="card-title">积分规则</view>
-            <view class="card-desc">了解积分获取规则</view>
-          </view>
-          <view class="card-arrow">→</view>
+        <view class="premium-stat-card">
+          <view class="stat-icon">🛍</view>
+          <view class="stat-number">{{totalSpent || 0}}</view>
+          <view class="stat-label">累计消费</view>
         </view>
-      </view>
-      
-      <view class="usage-tip">
-        <view class="tip-icon">💡</view>
-        <view class="tip-text">使用微信扫一扫付款码支付，积分自动入账</view>
-      </view>
-    </view>
-    
-    <!-- 积分价值说明（底部总结） -->
-    <view class="points-value-summary">
-      <view class="summary-title">💰 积分价值</view>
-      <view class="value-items">
-        <view class="value-item">
-          <view class="value-icon">¥</view>
-          <view class="value-text">1元 = 1积分</view>
-        </view>
-        <view class="value-item">
-          <view class="value-icon">⚡</view>
-          <view class="value-text">支付即时到账</view>
-        </view>
-        <view class="value-item">
-          <view class="value-icon">₵</view>
-          <view class="value-text">1积分=1元钱</view>
+        <view class="premium-stat-card">
+          <view class="stat-icon">🎯</view>
+          <view class="stat-number">{{monthlyEarned || 0}}</view>
+          <view class="stat-label">本月获得</view>
         </view>
       </view>
     </view>
   </view>
 
-  <!-- 筛选器 -->
-  <view class="filter-section card">
-    <view class="filter-title">积分记录</view>
-    <view class="filter-tabs">
+  <!-- 商城入口区域 -->
+  <view class="mall-entrance-section">
+    <view class="mall-card" bindtap="onMallTap">
+      <view class="mall-icon">🏪</view>
+      <view class="mall-content">
+        <view class="mall-title">积分商城</view>
+        <view class="mall-subtitle">兑换精美好礼</view>
+      </view>
+      <view class="mall-status">
+        <view class="status-badge">即将上线</view>
+        <view class="status-arrow">→</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 高端选项卡导航 -->
+  <view class="premium-tab-navigation">
+    <view class="tab-selector">
       <view 
-        wx:for="{{filterTabs}}" 
-        wx:key="value"
-        class="filter-tab {{currentFilter == item.value ? 'active' : ''}}"
-        bind:tap="switchFilter"
-        data-filter="{{item.value}}"
+        class="premium-tab {{activeTab === 'overview' ? 'active' : ''}}"
+        data-tab="overview"
+        bindtap="onTabChange"
       >
-        {{item.label}}
+        <view class="tab-icon">📊</view>
+        <view class="tab-text">概览</view>
       </view>
-    </view>
-  </view>
-
-  <!-- 积分记录列表 -->
-  <view class="records-section">
-    
-    <!-- 加载状态 -->
-    <view wx:if="{{loading}}" class="loading-container">
-      <view class="loading-icon">⏳</view>
-      <view class="loading-text">加载中...</view>
-    </view>
-    
-    <!-- 空状态 -->
-    <view wx:elif="{{records.length === 0}}" class="empty-container card">
-      <view class="empty-icon">📝</view>
-      <view class="empty-text">暂无积分记录</view>
-      <view class="empty-desc">完成支付后即可获得积分奖励</view>
-      <button class="btn-primary mt-30" bind:tap="goToScan">去扫码支付</button>
-    </view>
-    
-    <!-- 记录列表 -->
-    <view wx:else>
       <view 
-        wx:for="{{records}}" 
-        wx:key="id"
-        class="record-item card"
+        class="premium-tab {{activeTab === 'history' ? 'active' : ''}}"
+        data-tab="history"
+        bindtap="onTabChange"
       >
-        <view class="record-header">
-          <view class="record-source">
-            <view class="source-icon">{{item.sourceIcon}}</view>
-            <view class="source-text">{{item.sourceText}}</view>
-          </view>
-          <view class="record-time">{{item.formattedTime}}</view>
-        </view>
-        
-        <view class="record-content">
-          <view class="record-desc">{{item.description}}</view>
-          <view class="record-details" wx:if="{{item.orderNo}}">
-            订单号：{{item.orderNo}}
-          </view>
-        </view>
-        
-        <view class="record-footer">
-          <view class="points-change {{item.pointsChange > 0 ? 'positive' : 'negative'}}">
-            {{item.formattedChange}}
-          </view>
-          <view class="balance-after">
-            余额：{{item.pointsBalance}}
-          </view>
-        </view>
-        
-        <!-- 过期提示 -->
-        <view wx:if="{{item.expiresAt && item.pointsChange > 0}}" class="expiry-info">
-          <view class="expiry-text">{{item.expiryText}}</view>
-        </view>
+        <view class="tab-icon">📋</view>
+        <view class="tab-text">记录</view>
       </view>
-      
-      <!-- 加载更多 -->
-      <view wx:if="{{hasMore}}" class="load-more">
-        <button 
-          class="load-more-btn" 
-          bind:tap="loadMore"
-          disabled="{{loadingMore}}"
-        >
-          {{loadingMore ? '加载中...' : '加载更多'}}
-        </button>
+      <view 
+        class="premium-tab {{activeTab === 'rewards' ? 'active' : ''}}"
+        data-tab="rewards"
+        bindtap="onTabChange"
+      >
+        <view class="tab-icon">🎁</view>
+        <view class="tab-text">奖励</view>
       </view>
-      
-      <!-- 没有更多 -->
-      <view wx:else class="no-more">
-        <view class="no-more-text">没有更多记录了</view>
+      <view 
+        class="premium-tab {{activeTab === 'analytics' ? 'active' : ''}}"
+        data-tab="analytics"
+        bindtap="onTabChange"
+      >
+        <view class="tab-icon">📈</view>
+        <view class="tab-text">分析</view>
       </view>
     </view>
   </view>
 
+  <!-- 高端内容区域 -->
+  <view class="premium-content">
+    <!-- 概览面板 -->
+    <view class="premium-panel" wx:if="{{activeTab === 'overview'}}">
+      <view class="overview-section">
+        <view class="section-header">
+          <view class="section-title">账户概览</view>
+          <view class="section-subtitle">您的积分活动总览</view>
+        </view>
+        
+        <view class="summary-cards">
+          <view class="summary-card balance-card">
+            <view class="card-icon">💰</view>
+            <view class="card-content">
+              <view class="card-number">{{pointsBalance || 0}}</view>
+              <view class="card-label">可用余额</view>
+              <view class="card-desc">可立即兑换</view>
+            </view>
+          </view>
+          
+          <view class="summary-card earned-card">
+            <view class="card-icon">🎯</view>
+            <view class="card-content">
+              <view class="card-number">{{totalEarned || 0}}</view>
+              <view class="card-label">累计获得</view>
+              <view class="card-desc">总计积累</view>
+            </view>
+          </view>
+        </view>
+        
+        <view class="quick-actions">
+          <view class="action-title">快速操作</view>
+          <view class="action-buttons">
+            <view class="action-btn earn-btn">
+              <view class="btn-icon">🛒</view>
+              <view class="btn-text">赚取积分</view>
+            </view>
+            <view class="action-btn redeem-btn" bindtap="onMallTap">
+              <view class="btn-icon">🎁</view>
+              <view class="btn-text">兑换奖励</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 记录面板 -->
+    <view class="premium-panel" wx:if="{{activeTab === 'history'}}">
+      <view class="history-section">
+        <view class="section-header">
+          <view class="section-title">交易记录</view>
+          <view class="section-subtitle">您的最近积分活动</view>
+        </view>
+        
+        <view class="premium-record-list">
+          <view class="premium-record" wx:for="{{pointsHistory}}" wx:key="id">
+            <view class="record-icon-wrapper">
+              <view class="record-type-icon">{{item.pointsChange > 0 ? '📈' : '📉'}}</view>
+            </view>
+            <view class="record-content">
+              <view class="record-title">{{item.merchantName || '积分交易'}}</view>
+              <view class="record-desc">{{item.description || '交易描述'}}</view>
+              <view class="record-timestamp">{{item.formattedTime}}</view>
+            </view>
+            <view class="record-value">
+              <view class="points-amount {{item.pointsChange > 0 ? 'positive' : 'negative'}}">
+                {{item.pointsChange > 0 ? '+' : ''}}{{item.pointsChange}}
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 奖励面板 -->
+    <view class="premium-panel" wx:if="{{activeTab === 'rewards'}}">
+      <view class="rewards-section">
+        <view class="section-header">
+          <view class="section-title">可用奖励</view>
+          <view class="section-subtitle">使用积分兑换精美礼品</view>
+        </view>
+        
+        <view class="rewards-coming-soon">
+          <view class="coming-soon-icon">🎁</view>
+          <view class="coming-soon-title">奖励即将上线</view>
+          <view class="coming-soon-desc">我们正在为您准备精美的奖励礼品，敬请期待！</view>
+          <view class="notify-btn">通知我</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 分析面板 -->
+    <view class="premium-panel" wx:if="{{activeTab === 'analytics'}}">
+      <view class="analytics-section">
+        <view class="section-header">
+          <view class="section-title">积分分析</view>
+          <view class="section-subtitle">深入了解您的消费模式</view>
+        </view>
+        
+        <view class="analytics-cards">
+          <view class="analytics-card">
+            <view class="analytics-title">月度活跃</view>
+            <view class="analytics-value">{{monthlyEarned || 0}}</view>
+            <view class="analytics-label">本月获得</view>
+          </view>
+          
+          <view class="analytics-card">
+            <view class="analytics-title">消费力</view>
+            <view class="analytics-value">¥{{spendingPowerValue}}</view>
+            <view class="analytics-label">等值金额</view>
+          </view>
+        </view>
+        
+        <view class="merchant-analytics">
+          <view class="merchant-title">热门商户</view>
+          <view class="merchant-list" wx:if="{{merchantStats && merchantStats.length > 0}}">
+            <view class="premium-merchant-item" wx:for="{{merchantStats}}" wx:key="merchantId">
+              <view class="merchant-icon">🏪</view>
+              <view class="merchant-details">
+                <view class="merchant-name">{{item.merchantName}}</view>
+                <view class="merchant-category">{{item.merchantCategory}}</view>
+              </view>
+              <view class="merchant-stats">
+                <view class="stat-row">
+                  <view class="stat-item">
+                    <view class="stat-number">{{item.orderCount}}</view>
+                    <view class="stat-text">订单</view>
+                  </view>
+                  <view class="stat-item">
+                    <view class="stat-number">{{item.totalPoints}}</view>
+                    <view class="stat-text">收益</view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <view wx:else class="no-merchant-data">
+            <view class="no-data-icon">📊</view>
+            <view class="no-data-text">暂无商户数据</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
 </view>

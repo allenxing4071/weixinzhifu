@@ -6,6 +6,16 @@ page {
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', SimSun, sans-serif;
 }
 
+/* 强制隐藏系统默认tabBar */
+.wx-tabbar, 
+wx-tabbar, 
+[class*="wx-tabbar"],
+[class*="tabbar"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 /* 底部导航栏文字大小调整 */
 .wx-tabbar-item {
   font-size: 16px !important;

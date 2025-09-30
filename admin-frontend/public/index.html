@@ -26,6 +26,9 @@
     -->
     <title>积分管理后台</title>
     
+    <!-- Chrome扩展冲突抑制脚本 -->
+    <script src="%PUBLIC_URL%/error-suppress.js"></script>
+    
     <!-- 防止钱包插件干扰 - 增强版本 -->
     <script>
       // 完全屏蔽钱包插件注入
@@ -47,15 +50,27 @@
         Object.defineProperty(window, 'okexchain', { value: undefined, writable: false });
         Object.defineProperty(window, 'binance', { value: undefined, writable: false });
         
-        // 拦截所有钱包相关错误
+        // 拦截所有钱包相关错误和Chrome扩展错误
         window.addEventListener('error', function(e) {
           if (e.filename && (
             e.filename.includes('inpage.js') || 
             e.filename.includes('content-script') ||
             e.filename.includes('extension') ||
-            e.filename.includes('wallet')
+            e.filename.includes('wallet') ||
+            e.filename.includes('chrome-extension')
           )) {
-            console.log('🛡️ 已拦截钱包插件错误:', e.message);
+            console.log('🛡️ 已拦截扩展错误:', e.message);
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+          
+          // 特殊处理_events错误
+          if (e.message && (
+            e.message.includes('_events') ||
+            e.message.includes('Cannot set properties of undefined')
+          )) {
+            console.log('🛡️ 已拦截_events错误:', e.message);
             e.preventDefault();
             e.stopPropagation();
             return false;
@@ -78,12 +93,37 @@
           }
         }, true);
         
-        // 定期清理钱包注入
+        // 保护_events属性
+        try {
+          Object.defineProperty(window, '_events', {
+            get: function() { return {}; },
+            set: function() { return true; },
+            configurable: false,
+            enumerable: false
+          });
+        } catch (e) {
+          // 忽略定义错误
+        }
+        
+        // 定期清理钱包注入和保护关键属性
         setInterval(() => {
           if (window.ethereum !== undefined) window.ethereum = undefined;
           if (window.web3 !== undefined) window.web3 = undefined;
           if (window.tronWeb !== undefined) window.tronWeb = undefined;
-        }, 1000);
+          
+          // 重新保护_events
+          try {
+            if (!window.hasOwnProperty('_events') || window._events === undefined) {
+              Object.defineProperty(window, '_events', {
+                get: function() { return {}; },
+                set: function() { return true; },
+                configurable: false
+              });
+            }
+          } catch (e) {
+            // 忽略重新定义错误
+          }
+        }, 500);
         
       })();
     </script>

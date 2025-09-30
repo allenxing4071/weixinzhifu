@@ -11,7 +11,7 @@ class RequestManager {
 
   get baseUrl() {
     const app = getApp()
-    return app?.globalData?.baseUrl || 'http://8.156.84.226/api/v1'
+    return app?.globalData?.baseUrl || 'https://www.guandongfang.cn/api/v1'
   }
 
   /**

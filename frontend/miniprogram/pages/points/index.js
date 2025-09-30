@@ -1,401 +1,309 @@
-// points/index.js - 生产环境版本
-const app = getApp()
+// 积分页面 - 对接真实API
+const { PointsService } = require('../../services/PointsService');
 
 Page({
   data: {
-    balanceInfo: {
-      balance: 0,
-      totalEarned: 0,
-      totalSpent: 0,
-      expiringPoints: 0
-    },
-    formattedBalance: '0',
-    pointsValue: '0.00',
-    records: [],
-    currentFilter: 'all',
-    filterTabs: [
-      { label: '全部', value: 'all' },
-      { label: '获得', value: 'payment_reward' },
-      { label: '消费', value: 'mall_consumption' },
-      { label: '调整', value: 'admin_adjust' }
-    ],
+    pointsBalance: 0,
+    totalEarned: 0,
+    totalSpent: 0,
+    monthlyEarned: 0,
+    spendingPowerValue: '0.00',
+    pointsHistory: [],
+    paymentHistory: [],
+    merchantStats: [],
     loading: false,
-    loadingMore: false,
-    refreshing: false,
-    hasMore: true,
-    currentPage: 1,
-    pageSize: 20,
-    showPaymentSuccess: false,
-    newPointsAmount: 0
+    activeTab: 'overview', // overview, history, rewards, analytics
+    pagination: {
+      page: 1,
+      pageSize: 20,
+      hasMore: true
+    }
   },
 
-  onLoad(options) {
-    console.log('📱 积分页面加载（生产模式）')
+  onLoad() {
+    console.log('💰 积分页面加载');
+    console.log('🔍 全局数据检查:', getApp().globalData);
     
-    // 检查是否来自支付成功页面
-    if (options.paymentSuccess === 'true') {
-      this.setData({ showPaymentSuccess: true })
-      this.showPaymentSuccessAnimation()
+    // 检查是否为演示模式
+    if (getApp().globalData.demoMode) {
+      console.log('🎮 演示模式：使用模拟积分数据');
+      this.loadDemoData();
+    } else {
+      console.log('🔗 真实模式：调用API加载数据');
+      this.loadPointsData();
     }
-    
-    this.initPage()
   },
 
   onShow() {
-    console.log('📱 积分页面显示')
-    
-    // 检查登录状态
-    if (!app.isLoggedIn()) {
-      this.showLoginPrompt()
-      return
-    }
-    
-    this.loadData()
-  },
-
-  onPullDownRefresh() {
-    this.refreshData()
-  },
-
-  onReachBottom() {
-    if (this.data.hasMore && !this.data.loadingMore) {
-      this.loadMore()
-    }
-  },
-
-  /**
-   * 显示登录提示
-   */
-  showLoginPrompt() {
-    wx.showModal({
-      title: '登录提示',
-      content: '查看积分需要先登录微信账号',
-      confirmText: '去登录',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) {
-          // 触发重新登录
-          app.doWechatLogin().then(() => {
-            this.loadData()
-          })
-        }
-      }
-    })
-  },
-
-  /**
-   * 页面初始化
-   */
-  async initPage() {
-    try {
-      console.log('🔄 初始化积分页面（生产模式）')
-      this.setData({ loading: true })
-      
-      // 等待登录完成
-      if (!app.isLoggedIn()) {
-        await this.waitForLogin()
-      }
-      
-      // 加载真实数据
-      await this.loadData()
-      
-    } catch (error) {
-      console.error('❌ 页面初始化失败:', error)
-      this.showErrorState()
-    } finally {
-      this.setData({ loading: false })
-    }
-  },
-
-  /**
-   * 等待登录完成
-   */
-  waitForLogin(timeout = 5000) {
-    return new Promise((resolve, reject) => {
-      const checkLogin = () => {
-        if (app.isLoggedIn()) {
-          resolve()
-        } else {
-          setTimeout(checkLogin, 500)
-        }
-      }
-      
-      checkLogin()
-      
-      // 超时处理
-      setTimeout(() => {
-        if (!app.isLoggedIn()) {
-          reject(new Error('登录超时'))
-        }
-      }, timeout)
-    })
-  },
-
-  /**
-   * 加载真实数据
-   */
-  async loadData(refresh = false) {
-    try {
-      console.log('📊 开始加载真实积分数据')
-      
-      if (!app.isLoggedIn()) {
-        console.warn('⚠️ 用户未登录，无法加载数据')
-        return
-      }
-      
-      const page = refresh ? 1 : this.data.currentPage
-      const source = this.data.currentFilter === 'all' ? null : this.data.currentFilter
-      
-      // 并行加载余额和记录
-      const [balanceResult, recordsResult] = await Promise.all([
-        this.loadPointsBalance(),
-        this.loadPointsHistory(source, page, this.data.pageSize)
-      ])
-      
-      console.log('✅ 积分数据加载成功')
-      
-      // 更新余额信息
-      if (balanceResult) {
-        this.setData({
-          balanceInfo: balanceResult,
-          formattedBalance: this.formatNumber(balanceResult.balance),
-          pointsValue: (balanceResult.balance * 1).toFixed(2)
-        })
-      }
-      
-      // 更新记录信息
-      if (recordsResult) {
-        const newRecords = recordsResult.records || []
-        this.setData({
-          records: refresh ? newRecords : [...this.data.records, ...newRecords],
-          hasMore: recordsResult.hasMore !== false,
-          currentPage: page
-        })
-      }
-      
-    } catch (error) {
-      console.error('❌ 加载积分数据失败:', error)
-      
-      // 网络错误时显示友好提示
-      wx.showToast({
-        title: '数据加载失败',
-        icon: 'error',
-        duration: 2000
+    // 更新tabBar选中状态
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({
+        selected: 0
       })
-      
-      this.showErrorState()
+    }
+    
+    // 页面显示时刷新数据
+    if (getApp().globalData.demoMode) {
+      this.loadDemoData();
+    } else {
+      this.loadPointsData();
     }
   },
 
-  /**
-   * 加载积分余额
-   */
+  // 加载演示数据
+  loadDemoData() {
+    console.log('🎮 加载演示积分数据...');
+    
+    const demoPointsHistory = [
+      {
+        id: 'demo_001',
+        type: 'earned',
+        pointsChange: 88,
+        description: '支付获得积分',
+        merchantName: '成都市中鑫博海国际酒业贸易有限公司',
+        orderId: 'PAY20241227001',
+        createdAt: '2024-12-27 14:30:00',
+        formattedTime: '12/27 14:30'
+      },
+      {
+        id: 'demo_002', 
+        type: 'earned',
+        pointsChange: 150,
+        description: '支付获得积分',
+        merchantName: '仁寿县怀仁街道云锦汇会所（个体工商户）',
+        orderId: 'PAY20241226002',
+        createdAt: '2024-12-26 19:45:00',
+        formattedTime: '12/26 19:45'
+      },
+      {
+        id: 'demo_003',
+        type: 'spent',
+        pointsChange: -50,
+        description: '积分兑换商品',
+        merchantName: '积分商城',
+        orderId: 'REDEEM001',
+        createdAt: '2024-12-25 16:20:00',
+        formattedTime: '12/25 16:20'
+      },
+      {
+        id: 'demo_004',
+        type: 'earned',
+        pointsChange: 200,
+        description: '支付获得积分',
+        merchantName: '仁寿县怀仁街道储府鱼庄店（个体工商户）',
+        orderId: 'PAY20241224003',
+        createdAt: '2024-12-24 12:15:00',
+        formattedTime: '12/24 12:15'
+      }
+    ];
+
+    const demoPaymentHistory = [
+      {
+        orderId: 'pay_demo_001',
+        orderNo: 'PAY20241227001',
+        amount: '88.00', // 显示金额（元）
+        merchantName: '成都市中鑫博海国际酒业贸易有限公司',
+        merchantCategory: '酒类贸易',
+        pointsEarned: 88,
+        status: 'completed',
+        createdAt: '2024-12-27 14:30:00',
+        formattedTime: '12/27 14:30'
+      },
+      {
+        orderId: 'pay_demo_002',
+        orderNo: 'PAY20241226002', 
+        amount: '150.00',
+        merchantName: '仁寿县怀仁街道云锦汇会所（个体工商户）',
+        merchantCategory: '休闲娱乐',
+        pointsEarned: 150,
+        status: 'completed',
+        createdAt: '2024-12-26 19:45:00',
+        formattedTime: '12/26 19:45'
+      }
+    ];
+
+    const demoMerchantStats = [
+      {
+        merchantId: 'merchant-004',
+        merchantName: '成都市中鑫博海国际酒业贸易有限公司',
+        merchantCategory: '酒类贸易',
+        orderCount: 1,
+        totalAmount: '88.00',
+        totalPoints: 88
+      },
+      {
+        merchantId: 'merchant-001',
+        merchantName: '仁寿县怀仁街道云锦汇会所（个体工商户）',
+        merchantCategory: '休闲娱乐',
+        orderCount: 1,
+        totalAmount: '150.00',
+        totalPoints: 150
+      },
+      {
+        merchantId: 'merchant-002',
+        merchantName: '仁寿县怀仁街道储府鱼庄店（个体工商户）',
+        merchantCategory: '餐饮',
+        orderCount: 1,
+        totalAmount: '200.00',
+        totalPoints: 200
+      }
+    ];
+
+    // 设置演示数据
+    this.setData({
+      pointsBalance: 1580,
+      totalEarned: 1630,
+      totalSpent: 50,
+      monthlyEarned: 388,
+      spendingPowerValue: (1580 / 100).toFixed(2),
+      pointsHistory: demoPointsHistory,
+      paymentHistory: demoPaymentHistory,
+      merchantStats: demoMerchantStats,
+      loading: false,
+      activeTab: 'overview' // 更新为新的默认标签页
+    });
+
+    console.log('✅ 演示积分数据加载完成');
+    console.log('📊 数据详情:', {
+      pointsBalance: 1580,
+      totalEarned: 1630,
+      totalSpent: 50,
+      monthlyEarned: 388,
+      historyCount: demoPointsHistory.length,
+      paymentCount: demoPaymentHistory.length,
+      merchantCount: demoMerchantStats.length,
+      activeTab: 'overview'
+    });
+    
+    // 显示演示模式提示
+    wx.showToast({
+      title: '演示数据已加载',
+      icon: 'success',
+      duration: 1500
+    });
+  },
+
+  // 加载积分数据
+  async loadPointsData() {
+    this.setData({ loading: true });
+    
+    try {
+      await Promise.all([
+        this.loadPointsBalance(),
+        this.loadPointsHistory(),
+        this.loadPaymentHistory(),
+        this.loadMerchantStats()
+      ]);
+    } catch (error) {
+      console.error('❌ 加载积分数据失败:', error);
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  // 加载积分余额
   async loadPointsBalance() {
     try {
-      const response = await app.requestAPI('/points/balance', 'GET')
-      
-      if (response.success) {
-        return {
-          balance: response.data.balance || 0,
-          totalEarned: response.data.totalEarned || 0,
-          totalSpent: response.data.totalSpent || 0,
-          expiringPoints: response.data.expiringPoints || 0
-        }
-      } else {
-        throw new Error(response.message || '获取积分余额失败')
-      }
-    } catch (error) {
-      console.error('❌ 获取积分余额失败:', error)
-      return null
-    }
-  },
-
-  /**
-   * 加载积分历史记录
-   */
-  async loadPointsHistory(source = null, page = 1, pageSize = 20) {
-    try {
-      const params = { page, pageSize }
-      if (source) {
-        params.source = source
-      }
-      
-      const query = new URLSearchParams(params).toString()
-      const response = await app.requestAPI(`/points/history?${query}`, 'GET')
-      
-      if (response.success) {
-        return {
-          records: response.data.records || [],
-          hasMore: response.data.hasMore !== false,
-          total: response.data.total || 0
-        }
-      } else {
-        throw new Error(response.message || '获取积分记录失败')
-      }
-    } catch (error) {
-      console.error('❌ 获取积分记录失败:', error)
-      return null
-    }
-  },
-
-  /**
-   * 显示错误状态
-   */
-  showErrorState() {
-    // 只显示加载失败的提示，不显示假数据
-    this.setData({
-      balanceInfo: {
-        balance: 0,
-        totalEarned: 0,
-        totalSpent: 0,
-        expiringPoints: 0
-      },
-      formattedBalance: '0',
-      pointsValue: '0.00',
-      records: []
-    })
-  },
-
-  /**
-   * 刷新数据
-   */
-  async refreshData() {
-    try {
+      const balanceData = await PointsService.getBalance();
       this.setData({
-        refreshing: true,
-        currentPage: 1,
-        hasMore: true
-      })
-      
-      await this.loadData(true)
-      
+        pointsBalance: balanceData.balance,
+        totalEarned: balanceData.totalEarned,
+        totalSpent: balanceData.totalSpent,
+        monthlyEarned: balanceData.monthlyEarned,
+        spendingPowerValue: (balanceData.balance / 100).toFixed(2)
+      });
+      console.log('✅ 积分余额加载成功:', balanceData.balance);
     } catch (error) {
-      console.error('❌ 刷新数据失败:', error)
-    } finally {
-      this.setData({ refreshing: false })
-      wx.stopPullDownRefresh()
+      console.error('❌ 加载积分余额失败:', error);
     }
   },
 
-  /**
-   * 加载更多
-   */
-  async loadMore() {
+  // 加载积分历史
+  async loadPointsHistory() {
     try {
-      this.setData({ 
-        loadingMore: true,
-        currentPage: this.data.currentPage + 1
-      })
-      
-      await this.loadData()
-      
-    } catch (error) {
-      console.error('❌ 加载更多失败:', error)
+      const historyData = await PointsService.getHistory();
       this.setData({
-        currentPage: this.data.currentPage - 1
-      })
-    } finally {
-      this.setData({ loadingMore: false })
+        pointsHistory: historyData.records || []
+      });
+      console.log('✅ 积分历史加载成功:', historyData.records?.length || 0, '条');
+    } catch (error) {
+      console.error('❌ 加载积分历史失败:', error);
     }
   },
 
-  /**
-   * 切换筛选
-   */
-  async switchFilter(e) {
+  // 加载支付记录
+  async loadPaymentHistory() {
     try {
-      const filter = e.currentTarget.dataset.filter
-      
+      const paymentData = await PointsService.getPaymentHistory();
       this.setData({
-        currentFilter: filter,
-        loading: true,
-        currentPage: 1,
-        hasMore: true
-      })
-      
-      await this.loadData(true)
-      
+        paymentHistory: paymentData.records || []
+      });
+      console.log('✅ 支付记录加载成功:', paymentData.records?.length || 0, '条');
     } catch (error) {
-      console.error('❌ 切换筛选失败:', error)
-    } finally {
-      this.setData({ loading: false })
+      console.error('❌ 加载支付记录失败:', error);
     }
   },
 
-  /**
-   * 显示支付成功动画
-   */
-  showPaymentSuccessAnimation() {
-    // 检查本地存储中是否有最新支付信息
-    const recentPayment = wx.getStorageSync('recentPaymentSuccess')
-    
-    if (recentPayment) {
+  // 加载商户统计
+  async loadMerchantStats() {
+    try {
+      const merchantData = await PointsService.getMerchantStats();
       this.setData({
-        newPointsAmount: recentPayment.awardedPoints || 0
-      })
-      
-      // 显示积分获得动画
-      setTimeout(() => {
-        this.setData({ showPaymentSuccess: false })
-        wx.removeStorageSync('recentPaymentSuccess')
-      }, 3000)
+        merchantStats: merchantData.merchantGroups || []
+      });
+      console.log('✅ 商户统计加载成功:', merchantData.merchantGroups?.length || 0, '个商户');
+    } catch (error) {
+      console.error('❌ 加载商户统计失败:', error);
     }
   },
 
-  /**
-   * 格式化数字
-   */
-  formatNumber(num) {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  // 切换标签页
+  onTabChange(e) {
+    const activeTab = e.currentTarget.dataset.tab;
+    this.setData({ activeTab });
   },
 
-  /**
-   * 跳转功能
-   */
-  goToScan() {
-    // 扫码功能
-    wx.scanCode({
-      scanType: ['qrCode'],
+  // 格式化时间
+  formatTime(timeStr) {
+    const date = new Date(timeStr);
+    return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+  },
+
+  // 格式化金额
+  formatAmount(amount) {
+    return `¥${amount.toFixed(2)}`;
+  },
+
+  // 下拉刷新
+  async onPullDownRefresh() {
+    await this.loadPointsData();
+    wx.stopPullDownRefresh();
+  },
+
+  // 商城点击事件
+  onMallTap() {
+    wx.showModal({
+      title: '积分商城',
+      content: '积分商城即将上线！我们正在为您准备丰富的兑换选项和精美礼品。敬请期待更多精彩内容！',
+      confirmText: '好的',
+      showCancel: false,
       success: (res) => {
-        console.log('扫码结果:', res.result)
-        
-        // 解析二维码内容，如果是支付链接则跳转
-        if (res.result.includes('merchantId')) {
-          const url = new URL(res.result)
-          const merchantId = url.searchParams.get('merchantId')
-          
-          if (merchantId) {
-            wx.navigateTo({
-              url: `/pages/payment/index?merchantId=${merchantId}`
-            })
-          }
-        } else {
+        if (res.confirm) {
           wx.showToast({
-            title: '无效的商户二维码',
-            icon: 'error'
-          })
+            title: '即将上线！',
+            icon: 'none',
+            duration: 2000
+          });
         }
-      },
-      fail: (error) => {
-        console.error('扫码失败:', error)
       }
-    })
+    });
   },
 
-  goToMall() {
-    wx.showToast({
-      title: '积分商城即将上线',
-      icon: 'none'
-    })
-  },
-
-  /**
-   * 手动刷新
-   */
-  manualRefresh() {
-    this.setData({ loading: true })
-    this.loadData(true).finally(() => {
-      this.setData({ loading: false })
-    })
+  // 上拉加载更多
+  async onReachBottom() {
+    if (!this.data.pagination.hasMore) return;
+    
+    // 加载更多数据的逻辑
+    console.log('📄 加载更多数据...');
   }
-})
+});

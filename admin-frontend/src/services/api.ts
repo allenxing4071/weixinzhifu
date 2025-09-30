@@ -35,7 +35,7 @@ class ApiClient {
 
   constructor() {
     this.instance = axios.create({
-      baseURL: 'http://localhost:3003/api/v1',  // 使用新的商户管理API地址
+      baseURL: '/api/v1',  // 使用相对路径，通过Nginx代理到后端
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',

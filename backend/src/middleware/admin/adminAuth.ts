@@ -23,10 +23,11 @@ export const verifyAdminToken = async (req: Request, res: Response, next: NextFu
     const authHeader = req.headers.authorization
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: '未提供认证令牌'
       })
+      return
     }
 
     const token = authHeader.substring(7) // 移除 "Bearer " 前缀
@@ -42,14 +43,14 @@ export const verifyAdminToken = async (req: Request, res: Response, next: NextFu
       })
 
       if (!admin) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: '管理员不存在'
         })
       }
 
       if (admin.status !== 'active') {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: '账号已被禁用'
         })
@@ -62,7 +63,7 @@ export const verifyAdminToken = async (req: Request, res: Response, next: NextFu
 
       next()
     } catch (jwtError) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: '认证令牌无效或已过期'
       })
@@ -83,7 +84,7 @@ export const requirePermission = (permission: Permission) => {
     const adminPermissions = req.adminPermissions || []
     
     if (!adminPermissions.includes(permission)) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: '权限不足，无法执行此操作'
       })
@@ -103,7 +104,7 @@ export const requireAnyPermission = (permissions: Permission[]) => {
     )
     
     if (!hasPermission) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: '权限不足，无法执行此操作'
       })
@@ -123,7 +124,7 @@ export const requireAllPermissions = (permissions: Permission[]) => {
     )
     
     if (!hasAllPermissions) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: '权限不足，无法执行此操作'
       })
@@ -138,7 +139,7 @@ export const requireSuperAdmin = (req: Request, res: Response, next: NextFunctio
   const admin = req.admin
   
   if (!admin || admin.role?.roleCode !== 'super_admin') {
-    return res.status(403).json({
+    res.status(403).json({
       success: false,
       message: '仅超级管理员可执行此操作'
     })

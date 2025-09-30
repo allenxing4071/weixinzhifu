@@ -17,10 +17,10 @@
     <view class="payee-section">
       <view class="payee-label">付款给个人</view>
       <view class="payee-info">
-        <image class="payee-avatar" src="{{merchantInfo.avatar || '/images/default-merchant.png'}}"></image>
+        <image class="payee-avatar" src="{{merchantInfo.avatar || 'https://via.placeholder.com/80x80/1989fa/ffffff?text=商户'}}"></image>
         <view class="payee-details">
-          <view class="payee-name">{{merchantInfo.name || '数谷异联科技'}}</view>
-          <view class="payee-subtitle">{{merchantInfo.desc || '(**龙)'}}</view>
+          <view class="payee-name">{{merchantInfo.name || '加载中...'}}</view>
+          <view class="payee-subtitle">{{merchantInfo.businessCategory || '商户信息加载中...'}}</view>
         </view>
       </view>
     </view>

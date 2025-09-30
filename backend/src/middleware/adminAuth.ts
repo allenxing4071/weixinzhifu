@@ -202,7 +202,7 @@ export const applyDataScope = (
 /**
  * 操作日志记录中间件
  */
-export const logOperation = (operationType: string) => {
+export const logOperation = (operation: string) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const startTime = Date.now()
     
@@ -223,7 +223,7 @@ export const logOperation = (operationType: string) => {
             await AdminOperationLogModel.create({
               adminId: adminUser.adminId,
               adminName: adminUser.realName,
-              operationType,
+              operation,
               operationDesc: `${req.method} ${req.path}`,
               targetType: req.params.id ? 'resource' : 'collection',
               targetId: req.params.id,

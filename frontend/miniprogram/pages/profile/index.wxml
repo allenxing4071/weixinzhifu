@@ -1,114 +1,164 @@
-<!--profile/index.wxml-->
-<view class="profile-container">
-  
-  <!-- 用户信息卡片 -->
-  <view class="user-card">
-    <view wx:if="{{userInfo}}" class="user-content">
-      <image class="user-avatar" src="{{userInfo.avatar || '/images/default-avatar.png'}}"></image>
-      <view class="user-details">
-        <view class="user-name">{{userInfo.nickname}}</view>
-        <view class="user-id">ID: {{userInfo.id}}</view>
-        <view class="join-time">注册时间：{{formattedJoinTime}}</view>
+<!-- 高端个人中心页面 - 统一设计风格 -->
+<view class="profile-premium-container">
+  <!-- 高端用户信息头部 -->
+  <view class="premium-profile-header">
+    <view class="header-gradient"></view>
+    <view class="profile-content">
+      <view wx:if="{{userInfo}}" class="user-info-section">
+        <view class="avatar-wrapper">
+          <image class="user-avatar" src="{{userInfo.avatar || '/images/default-avatar.png'}}"></image>
+          <view class="avatar-status"></view>
+        </view>
+        <view class="user-details">
+          <view class="user-name">{{userInfo.nickname}}</view>
+          <view class="user-level">{{userInfo.levelName || '普通会员'}}</view>
+          <view class="user-subtitle">您的个人账户</view>
+        </view>
+        <view class="edit-action" bind:tap="editProfile">
+          <view class="edit-icon">⚙️</view>
+        </view>
       </view>
-      <view class="edit-profile" bind:tap="editProfile">
-        <view class="edit-icon">✏️</view>
+      
+      <!-- 未登录状态 -->
+      <view wx:else class="login-section">
+        <view class="login-icon">👤</view>
+        <view class="login-title">欢迎使用</view>
+        <view class="login-subtitle">请登录以获得完整体验</view>
+        <button class="premium-login-btn" bind:tap="handleLogin">微信登录</button>
       </view>
-    </view>
-    
-    <!-- 未登录状态 -->
-    <view wx:else class="login-card">
-      <view class="login-icon">👤</view>
-      <view class="login-text">点击登录</view>
-      <button class="login-btn" bind:tap="handleLogin">微信登录</button>
+      
+      <!-- 高端统计网格 -->
+      <view wx:if="{{userInfo}}" class="premium-stats-grid">
+        <view class="premium-stat-card" bind:tap="goToPoints">
+          <view class="stat-icon">💎</view>
+          <view class="stat-number">{{pointsInfo.balance || 0}}</view>
+          <view class="stat-label">可用积分</view>
+        </view>
+        <view class="premium-stat-card">
+          <view class="stat-icon">📊</view>
+          <view class="stat-number">{{paymentInfo.totalOrders || 0}}</view>
+          <view class="stat-label">订单总数</view>
+        </view>
+        <view class="premium-stat-card">
+          <view class="stat-icon">💰</view>
+          <view class="stat-number">¥{{paymentInfo.totalAmount || '0.00'}}</view>
+          <view class="stat-label">累计消费</view>
+        </view>
+      </view>
     </view>
   </view>
 
-  <!-- 积分概览 -->
-  <view wx:if="{{userInfo}}" class="points-overview card">
-    <view class="overview-title">积分概览</view>
-    <view class="points-grid">
-      <view class="points-item" bind:tap="goToPoints">
-        <view class="item-value">{{pointsInfo.balance || 0}}</view>
-        <view class="item-label">当前余额</view>
-      </view>
-      <view class="points-item">
-        <view class="item-value">{{pointsInfo.totalEarned || 0}}</view>
-        <view class="item-label">累计获得</view>
-      </view>
-      <view class="points-item">
-        <view class="item-value">{{paymentInfo.totalOrders || 0}}</view>
-        <view class="item-label">支付笔数</view>
-      </view>
-      <view class="points-item">
-        <view class="item-value">¥{{paymentInfo.totalAmount || '0.00'}}</view>
-        <view class="item-label">累计支付</view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 功能菜单 -->
-  <view wx:if="{{userInfo}}" class="menu-section">
-    
-    <!-- 积分相关 -->
-    <view class="menu-group card">
-      <view class="group-title">积分服务</view>
-      <view class="menu-item" bind:tap="goToPoints">
-        <view class="item-icon">🎁</view>
-        <view class="item-content">
-          <view class="item-title">我的积分</view>
-          <view class="item-desc">查看积分余额和明细</view>
-        </view>
-        <view class="item-arrow">→</view>
+  <!-- 高端内容区域 -->
+  <view wx:if="{{userInfo}}" class="premium-content">
+    <!-- 账户概览面板 -->
+    <view class="premium-panel">
+      <view class="section-header">
+        <view class="section-title">账户概览</view>
+        <view class="section-subtitle">您的积分和消费统计</view>
       </view>
       
-      <view class="menu-item" bind:tap="goToMall">
-        <view class="item-icon">🛒</view>
-        <view class="item-content">
-          <view class="item-title">积分商城</view>
-          <view class="item-desc">即将上线，敬请期待</view>
-        </view>
-        <view class="item-badge">即将上线</view>
-        <view class="item-arrow">→</view>
-      </view>
-    </view>
-    
-    <!-- 消费记录专区 -->
-    <view class="consumption-section card">
-      <view class="consumption-header">
-        <view class="section-icon">📊</view>
-        <view class="section-title">消费记录</view>
-        <view class="section-subtitle">查看您的所有消费和积分明细</view>
-      </view>
-      
-      <view class="consumption-stats">
-        <view class="stat-card" bind:tap="togglePaymentHistory">
-          <view class="stat-icon">💳</view>
-          <view class="stat-info">
-            <view class="stat-number">{{paymentInfo.totalOrders || 0}}</view>
-            <view class="stat-label">支付笔数</view>
+      <view class="summary-cards">
+        <view class="summary-card balance-card" bind:tap="goToPoints">
+          <view class="card-icon">💎</view>
+          <view class="card-content">
+            <view class="card-number">{{pointsInfo.balance || 0}}</view>
+            <view class="card-label">积分余额</view>
+            <view class="card-desc">立即使用</view>
           </view>
         </view>
         
-        <view class="stat-card" bind:tap="togglePaymentHistory">
-          <view class="stat-icon">💰</view>
-          <view class="stat-info">
-            <view class="stat-number">¥{{paymentInfo.totalAmount || '0.00'}}</view>
-            <view class="stat-label">累计消费</view>
+        <view class="summary-card earned-card">
+          <view class="card-icon">🎯</view>
+          <view class="card-content">
+            <view class="card-number">{{pointsInfo.totalEarned || 0}}</view>
+            <view class="card-label">累计获得</view>
+            <view class="card-desc">总积分收入</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 快速功能面板 -->
+    <view class="premium-panel">
+      <view class="section-header">
+        <view class="section-title">快速功能</view>
+        <view class="section-subtitle">常用操作和服务</view>
+      </view>
+      
+      <view class="feature-grid">
+        <view class="feature-card" bind:tap="goToPoints">
+          <view class="feature-icon">📈</view>
+          <view class="feature-content">
+            <view class="feature-title">积分明细</view>
+            <view class="feature-desc">查看积分记录</view>
+          </view>
+        </view>
+        
+        <view class="feature-card" bind:tap="goToMall">
+          <view class="feature-icon">🏪</view>
+          <view class="feature-content">
+            <view class="feature-title">积分商城</view>
+            <view class="feature-desc">即将上线</view>
+          </view>
+          <view class="feature-badge">新</view>
+        </view>
+        
+        <view class="feature-card" bind:tap="contactService">
+          <view class="feature-icon">📞</view>
+          <view class="feature-content">
+            <view class="feature-title">在线客服</view>
+            <view class="feature-desc">获得帮助</view>
+          </view>
+        </view>
+        
+        <view class="feature-card" bind:tap="showAbout">
+          <view class="feature-icon">ℹ️</view>
+          <view class="feature-content">
+            <view class="feature-title">关于我们</view>
+            <view class="feature-desc">了解更多</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 消费记录面板 -->
+    <view class="premium-panel">
+      <view class="section-header">
+        <view class="section-title">消费记录</view>
+        <view class="section-subtitle">查看您的消费和积分明细</view>
+      </view>
+      
+      <view class="analytics-cards">
+        <view class="analytics-card" bind:tap="togglePaymentHistory">
+          <view class="analytics-title">订单总数</view>
+          <view class="analytics-value">{{paymentInfo.totalOrders || 0}}</view>
+          <view class="analytics-label">支付笔数</view>
+        </view>
+        
+        <view class="analytics-card" bind:tap="togglePaymentHistory">
+          <view class="analytics-title">消费金额</view>
+          <view class="analytics-value">¥{{paymentInfo.totalAmount || '0.00'}}</view>
+          <view class="analytics-label">累计消费</view>
+        </view>
+      </view>
+      
+      <view class="quick-actions">
+        <view class="action-title">记录操作</view>
+        <view class="action-buttons">
+          <view class="action-btn" bind:tap="togglePaymentHistory">
+            <view class="btn-icon">📄</view>
+            <view class="btn-text">{{showPaymentHistory ? '收起记录' : '查看记录'}}</view>
+          </view>
+          <view class="action-btn" bind:tap="goToFullHistory">
+            <view class="btn-icon">📊</view>
+            <view class="btn-text">全部记录</view>
           </view>
         </view>
       </view>
       
-      <view class="consumption-actions">
-        <button class="consumption-btn" bind:tap="togglePaymentHistory">
-          <view class="btn-icon">📄</view>
-          <view class="btn-text">{{showPaymentHistory ? '收起记录' : '查看详细记录'}}</view>
-          <view class="btn-arrow">{{showPaymentHistory ? '↓' : '→'}}</view>
-        </button>
-      </view>
-      
       <!-- 支付记录列表 -->
-      <view wx:if="{{showPaymentHistory}}" class="payment-history-list">
-        <view class="history-header">
+      <view wx:if="{{showPaymentHistory}}" class="premium-record-list">
+        <view class="record-header">
           <view class="header-title">支付明细</view>
           <view class="header-subtitle">显示最近10条记录</view>
         </view>
@@ -131,36 +181,21 @@
           <view 
             wx:for="{{paymentHistory}}" 
             wx:key="id"
-            class="payment-record"
+            class="premium-record"
             bind:tap="viewPaymentDetail"
             data-order="{{item}}"
           >
-            <view class="record-header">
-              <view class="record-merchant">
-                <view class="merchant-icon">🏦</view>
-                <view class="merchant-name">{{item.merchantName || '商户支付'}}</view>
-              </view>
-              <view class="record-time">{{item.formattedTime}}</view>
+            <view class="record-icon-wrapper">
+              <view class="record-type-icon">💳</view>
             </view>
-            
             <view class="record-content">
+              <view class="record-title">{{item.merchantName || '商户支付'}}</view>
               <view class="record-desc">{{item.description || '微信支付'}}</view>
-              <view wx:if="{{item.orderNo}}" class="record-order">订单号：{{item.orderNo}}</view>
+              <view class="record-timestamp">{{item.formattedTime}}</view>
             </view>
-            
-            <view class="record-footer">
-              <view class="payment-amount">
-                <view class="amount-label">支付金额</view>
-                <view class="amount-value">¥{{item.formattedAmount}}</view>
-              </view>
-              <view class="points-reward">
-                <view class="reward-label">获得积分</view>
-                <view class="reward-value">+{{item.pointsAwarded || item.amount}}</view>
-              </view>
-            </view>
-            
-            <view class="record-status">
-              <view class="status-badge {{item.status}}">{{item.statusText || '支付成功'}}</view>
+            <view class="record-value">
+              <view class="points-amount positive">+{{item.pointsAwarded || item.amount}}</view>
+              <view class="points-label">积分</view>
             </view>
           </view>
         </view>
@@ -171,69 +206,10 @@
         </view>
       </view>
     </view>
-    
-    <!-- 设置相关 -->
-    <view class="menu-group card">
-      <view class="group-title">设置</view>
-      <view class="menu-item" bind:tap="showAbout">
-        <view class="item-icon">ℹ️</view>
-        <view class="item-content">
-          <view class="item-title">关于我们</view>
-          <view class="item-desc">了解积分助手</view>
-        </view>
-        <view class="item-arrow">→</view>
-      </view>
-      
-      <view class="menu-item" bind:tap="showUserAgreement">
-        <view class="item-icon">📄</view>
-        <view class="item-content">
-          <view class="item-title">用户协议</view>
-          <view class="item-desc">查看服务条款</view>
-        </view>
-        <view class="item-arrow">→</view>
-      </view>
-      
-      <view class="menu-item" bind:tap="showPrivacyPolicy">
-        <view class="item-icon">🔒</view>
-        <view class="item-content">
-          <view class="item-title">隐私政策</view>
-          <view class="item-desc">了解隐私保护</view>
-        </view>
-        <view class="item-arrow">→</view>
-      </view>
-    </view>
-    
-    <!-- 客服和帮助 -->
-    <view class="menu-group card">
-      <view class="group-title">帮助与反馈</view>
-      <view class="menu-item" bind:tap="contactService">
-        <view class="item-icon">📞</view>
-        <view class="item-content">
-          <view class="item-title">联系客服</view>
-          <view class="item-desc">遇到问题？联系我们</view>
-        </view>
-        <view class="item-arrow">→</view>
-      </view>
-      
-      <view class="menu-item" bind:tap="showHelp">
-        <view class="item-icon">❓</view>
-        <view class="item-content">
-          <view class="item-title">常见问题</view>
-          <view class="item-desc">查看帮助文档</view>
-        </view>
-        <view class="item-arrow">→</view>
-      </view>
-    </view>
-    
-    <!-- 退出登录 -->
-    <view class="logout-section">
-      <button class="logout-btn" bind:tap="handleLogout">退出登录</button>
-    </view>
   </view>
 
   <!-- 版本信息 -->
   <view class="version-info">
     <view class="version-text">积分助手 v{{version}}</view>
   </view>
-
 </view>

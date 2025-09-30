@@ -19,7 +19,13 @@ import {
   Modal,
   Input,
   Select,
-  Form
+  Form,
+  Progress,
+  Badge,
+  Divider,
+  List,
+  Timeline,
+  Tabs
 } from 'antd'
 import {
   DashboardOutlined,
@@ -32,33 +38,128 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   QrcodeOutlined,
-  PlusOutlined
+  PlusOutlined,
+  FileTextOutlined,
+  RiseOutlined,
+  FallOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  TrophyOutlined,
+  ThunderboltOutlined,
+  EyeOutlined,
+  WarningOutlined,
+  TeamOutlined,
+  KeyOutlined,
+  LockOutlined,
+  UnlockOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  ReloadOutlined,
+  SecurityScanOutlined,
+  CrownOutlined,
+  SafetyOutlined,
+  QuestionCircleOutlined
 } from '@ant-design/icons'
 import zhCN from 'antd/locale/zh_CN'
 import './App.css'
 
+// 错误边界组件
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    // 忽略Chrome扩展相关错误
+    if (error.message?.includes('chrome-extension') || 
+        error.message?.includes('_events') ||
+        error.message?.includes('mfgccjchihfkkindfppnaooecgfneiii') ||
+        error.message?.includes('inpage.js') ||
+        error.message?.includes('Cannot set properties of undefined') ||
+        error.stack?.includes('chrome-extension') ||
+        error.stack?.includes('mfgccjchihfkkindfppnaooecgfneiii')) {
+      console.log('🛡️ React错误边界已忽略Chrome扩展错误:', error.message)
+      this.setState({ hasError: false })
+      return
+    }
+    
+    console.error('应用错误:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError && !this.state.error?.message?.includes('chrome-extension')) {
+      return (
+        <div style={{ padding: '50px', textAlign: 'center' }}>
+          <h2>应用出现错误</h2>
+          <p>请刷新页面重试</p>
+          <Button onClick={() => window.location.reload()}>刷新页面</Button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 const { Header, Sider, Content } = AntLayout
 
-// API基础URL
+// 全局错误处理
+window.addEventListener('error', (event) => {
+  // 忽略Chrome扩展错误
+  if (event.filename?.includes('chrome-extension') || 
+      event.message?.includes('chrome-extension') ||
+      event.message?.includes('_events')) {
+    event.preventDefault()
+    return false
+  }
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  // 忽略Chrome扩展Promise错误
+  if (event.reason?.message?.includes('chrome-extension') ||
+      event.reason?.stack?.includes('chrome-extension')) {
+    event.preventDefault()
+    return false
+  }
+})
+
+// API基础URL - 使用相对路径，通过Nginx代理
 const API_BASE = '/api/v1'
 
 // HTTP请求函数
 async function apiRequest(url: string, options: any = {}) {
   const token = localStorage.getItem('admin_token')
-  const response = await fetch(API_BASE + url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...options.headers
-    },
-    ...options
-  })
   
-  if (!response.ok) {
-    throw new Error(`API请求失败: ${response.status}`)
+  try {
+    const response = await fetch(API_BASE + url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...options.headers
+      },
+      ...options
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`API请求失败: ${response.status} - ${errorText}`)
+    }
+    
+    return response.json()
+    
+  } catch (error) {
+    console.error('API请求失败:', error)
+    throw error
   }
-  
-  return response.json()
 }
 
 // 登录页面组件
@@ -79,7 +180,7 @@ const LoginPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify(formData)
       })
-
+      
       if (result.success) {
         localStorage.setItem('admin_token', result.data.token)
         message.success('登录成功！')
@@ -88,8 +189,7 @@ const LoginPage: React.FC = () => {
         message.error(result.message || '登录失败')
       }
     } catch (error) {
-      console.error('Login error:', error)
-      message.error('登录失败，请检查网络连接')
+      message.error(`登录失败: ${error instanceof Error ? error.message : '未知错误'}`)
     } finally {
       setLoading(false)
     }
@@ -137,55 +237,385 @@ const LoginPage: React.FC = () => {
   )
 }
 
-// 仪表板页面
+// 仪表板页面 - 重新设计核心数据展示
 const DashboardPage: React.FC = () => {
-  const [stats, setStats] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadStats = async () => {
+    const loadDashboardData = async () => {
       try {
         const result = await apiRequest('/admin/dashboard/stats')
         if (result.success) {
-          setStats(result.data.overview)
+          setDashboardData(result.data)
         }
       } catch (error) {
-        console.error('Load stats error:', error)
-        message.error('加载统计数据失败')
+        console.error('Load dashboard data error:', error)
+        message.error('加载仪表盘数据失败')
       } finally {
         setLoading(false)
       }
     }
-    loadStats()
+    loadDashboardData()
   }, [])
+
+  const refreshData = async () => {
+    setLoading(true)
+    try {
+      const result = await apiRequest('/admin/dashboard/stats')
+      if (result.success) {
+        setDashboardData(result.data)
+        message.success('数据刷新成功')
+      }
+    } catch (error) {
+      console.error('Refresh data error:', error)
+      message.error('刷新数据失败')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (loading) return <Spin size="large" />
 
+  const { overview, today, trends, quickAccess, system } = dashboardData || {}
+
   return (
     <div>
-      <h2>仪表板</h2>
-      <Row gutter={16}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>数据仪表盘</h2>
+          <p style={{ margin: '4px 0 0 0', color: '#666' }}>
+            实时监控业务数据和系统状态 
+            <Badge 
+              status={system?.status === 'healthy' ? 'processing' : 'error'} 
+              text={system?.status === 'healthy' ? '系统正常' : '系统异常'}
+              style={{ marginLeft: 8 }}
+            />
+          </p>
+        </div>
+        <Button type="primary" onClick={refreshData} loading={loading}>
+          刷新数据
+        </Button>
+      </div>
+
+      {/* 第一行：核心业务指标 */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>
           <Card>
-            <Statistic title="总用户数" value={stats?.totalUsers || 0} />
+            <Statistic
+              title="有消费记录用户"
+              value={overview?.totalUsers || 0}
+              prefix={<UserOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+              suffix="个"
+            />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="活跃用户" value={stats?.activeUsers || 0} />
+            <Statistic
+              title="活跃商户数"
+              value={overview?.activeMerchants || 0}
+              prefix={<ShopOutlined />}
+              valueStyle={{ color: '#52c41a' }}
+              suffix="家"
+            />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="总商户数" value={stats?.totalMerchants || 0} />
+            <Statistic
+              title="本月交易额"
+              value={overview?.monthlyRevenue || 0}
+              precision={2}
+              prefix="¥"
+              valueStyle={{ color: '#fa8c16' }}
+            />
+            <div style={{ fontSize: '12px', color: '#999', marginTop: 4 }}>
+              本月订单 {overview?.monthlyOrders || 0} 笔
+            </div>
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="今日订单" value={stats?.todayOrders || 0} />
+            <Statistic
+              title="本月积分发放"
+              value={overview?.monthlyPoints || 0}
+              prefix={<GiftOutlined />}
+              valueStyle={{ color: '#eb2f96' }}
+              suffix="分"
+            />
           </Card>
         </Col>
       </Row>
+
+      {/* 第二行：今日实时数据 */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="今日订单"
+              value={today?.orders || 0}
+              prefix={<FileTextOutlined />}
+              valueStyle={{ color: today?.orders > 0 ? '#52c41a' : '#999' }}
+              suffix="笔"
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="今日交易额"
+              value={today?.revenue || 0}
+              precision={2}
+              prefix="¥"
+              valueStyle={{ color: today?.revenue > 0 ? '#52c41a' : '#999' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="今日活跃用户"
+              value={today?.activeUsers || 0}
+              prefix={<ThunderboltOutlined />}
+              valueStyle={{ color: today?.activeUsers > 0 ? '#52c41a' : '#999' }}
+              suffix="人"
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="今日新用户"
+              value={today?.newUsers || 0}
+              prefix={<RiseOutlined />}
+              valueStyle={{ color: today?.newUsers > 0 ? '#52c41a' : '#999' }}
+              suffix="人"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 第三行：趋势分析和商户分布 */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={12}>
+          <Card title="最近7天交易趋势" extra={<EyeOutlined />}>
+            <div style={{ height: 200 }}>
+              {trends?.weekly && trends.weekly.length > 0 ? (
+                <div>
+                  {trends.weekly.map((item: any, index: number) => (
+                    <div key={index} style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      padding: '4px 0',
+                      borderBottom: index < trends.weekly.length - 1 ? '1px solid #f0f0f0' : 'none'
+                    }}>
+                      <span style={{ fontSize: '12px' }}>
+                        {new Date(item.date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                      </span>
+                      <span style={{ fontSize: '12px', color: '#666' }}>
+                        {item.orders}笔 | ¥{(item.revenue / 100).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  color: '#999'
+                }}>
+                  暂无交易数据
+                </div>
+              )}
+            </div>
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card title="商户类别分布" extra={<TrophyOutlined />}>
+            <div style={{ height: 200 }}>
+              {trends?.merchantCategories && trends.merchantCategories.length > 0 ? (
+                <div>
+                  {trends.merchantCategories.slice(0, 5).map((item: any, index: number) => (
+                    <div key={index} style={{ marginBottom: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: '14px' }}>{item.category}</span>
+                        <span style={{ fontSize: '12px', color: '#666' }}>
+                          {item.count}家 | ¥{item.revenue.toFixed(2)}
+                        </span>
+                      </div>
+                      <Progress 
+                        percent={Math.min((item.count / Math.max(...trends.merchantCategories.map((c: any) => c.count))) * 100, 100)} 
+                        size="small"
+                        showInfo={false}
+                        strokeColor={['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1'][index % 5]}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  color: '#999'
+                }}>
+                  暂无商户数据
+                </div>
+              )}
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 第四行：快速操作入口 */}
+      <Row gutter={16}>
+        <Col span={12}>
+          <Card 
+            title="最新订单" 
+            extra={
+              <Button type="link" size="small" onClick={() => window.location.href = '/admin/orders'}>
+                查看全部
+              </Button>
+            }
+          >
+            <div style={{ height: 200, overflow: 'auto' }}>
+              {quickAccess?.recentOrders && quickAccess.recentOrders.length > 0 ? (
+                <List
+                  size="small"
+                  dataSource={quickAccess.recentOrders}
+                  renderItem={(item: any) => (
+                    <List.Item>
+                      <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 500, fontSize: '14px' }}>
+                              ¥{item.amount.toFixed(2)}
+                              <Tag color="green" style={{ marginLeft: 8 }}>
+                                +{item.pointsAwarded}分
+                              </Tag>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#666' }}>
+                              {item.userNickname} · {item.merchantName}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <Tag color={item.status === 'paid' ? 'green' : 'orange'}>
+                              {item.status === 'paid' ? '已支付' : '待支付'}
+                            </Tag>
+                            <div style={{ fontSize: '11px', color: '#999' }}>
+                              {new Date(item.createdAt).toLocaleString('zh-CN', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </List.Item>
+                  )}
+                />
+              ) : (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  color: '#999'
+                }}>
+                  暂无订单数据
+                </div>
+              )}
+            </div>
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card 
+            title="待处理商户申请" 
+            extra={
+              <Button type="link" size="small" onClick={() => window.location.href = '/admin/merchants'}>
+                查看全部
+              </Button>
+            }
+          >
+            <div style={{ height: 200, overflow: 'auto' }}>
+              {quickAccess?.pendingMerchants && quickAccess.pendingMerchants.length > 0 ? (
+                <List
+                  size="small"
+                  dataSource={quickAccess.pendingMerchants}
+                  renderItem={(item: any) => (
+                    <List.Item>
+                      <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 500, fontSize: '14px' }}>
+                              {item.merchantName}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#666' }}>
+                              联系人: {item.contactPerson}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <Tag color="orange" icon={<ClockCircleOutlined />}>
+                              待审核
+                            </Tag>
+                            <div style={{ fontSize: '11px', color: '#999' }}>
+                              {new Date(item.createdAt).toLocaleString('zh-CN', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </List.Item>
+                  )}
+                />
+              ) : (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  color: '#999',
+                  flexDirection: 'column'
+                }}>
+                  <CheckCircleOutlined style={{ fontSize: 24, marginBottom: 8 }} />
+                  <span>暂无待处理申请</span>
+                </div>
+              )}
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 页面底部信息 */}
+      <div style={{ 
+        marginTop: 24, 
+        padding: 16, 
+        background: '#fafafa', 
+        borderRadius: 6,
+        textAlign: 'center',
+        color: '#666',
+        fontSize: '12px'
+      }}>
+        <div>
+          数据更新时间: {system?.lastUpdated ? new Date(system.lastUpdated).toLocaleString('zh-CN') : '未知'}
+          <Divider type="vertical" />
+          系统状态: 
+          <Tag color={system?.status === 'healthy' ? 'green' : 'red'} style={{ marginLeft: 4 }}>
+            {system?.status === 'healthy' ? '正常运行' : '异常'}
+          </Tag>
+        </div>
+      </div>
     </div>
   )
 }
@@ -194,50 +624,387 @@ const DashboardPage: React.FC = () => {
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [userDetailVisible, setUserDetailVisible] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [userDetailLoading, setUserDetailLoading] = useState(false)
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true)
+      const result = await apiRequest('/admin/users')
+      if (result.success) {
+        setUsers(result.data || [])
+      }
+    } catch (error) {
+      console.error('Load users error:', error)
+      message.error('加载用户数据失败')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const result = await apiRequest('/admin/users')
-        if (result.success) {
-          setUsers(result.data.users || [])
-        }
-      } catch (error) {
-        console.error('Load users error:', error)
-        message.error('加载用户数据失败')
-      } finally {
-        setLoading(false)
-      }
-    }
     loadUsers()
   }, [])
 
+  const handleToggleUserStatus = async (user: any) => {
+    const newStatus = user.status === 'active' ? 'locked' : 'active'
+    const action = newStatus === 'active' ? '解锁' : '锁定'
+    
+    try {
+      const result = await apiRequest(`/admin/users/${user.id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      })
+      
+      if (result.success) {
+        message.success(`${action}用户成功`)
+        loadUsers() // 重新加载用户列表
+      } else {
+        message.error(result.message || `${action}用户失败`)
+      }
+    } catch (error) {
+      console.error('Toggle user status error:', error)
+      message.error(`${action}用户失败`)
+    }
+  }
+
+  const handleViewUserDetail = async (user: any) => {
+    setUserDetailLoading(true)
+    setUserDetailVisible(true)
+    
+    try {
+      const result = await apiRequest(`/admin/users/${user.id}`)
+      if (result.success) {
+        setSelectedUser(result.data.user)
+      } else {
+        message.error('获取用户详情失败')
+        setSelectedUser(user) // 使用列表数据作为备用
+      }
+    } catch (error) {
+      console.error('Get user detail error:', error)
+      message.error('获取用户详情失败')
+      setSelectedUser(user) // 使用列表数据作为备用
+    } finally {
+      setUserDetailLoading(false)
+    }
+  }
+
   const columns = [
-    { title: '用户ID', dataIndex: 'id', key: 'id' },
-    { title: '昵称', dataIndex: 'nickname', key: 'nickname' },
-    { title: '积分余额', dataIndex: 'points_balance', key: 'points_balance' },
     { 
-      title: '状态', 
+      title: '用户信息', 
+      dataIndex: 'nickname', 
+      key: 'user_info',
+      width: 200,
+      render: (nickname: string, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{nickname || '未知用户'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>ID: {record.id}</div>
+          <div style={{ fontSize: '12px', color: '#999' }}>
+            微信: {record.wechatId || '未绑定'}
+          </div>
+        </div>
+      )
+    },
+    { 
+      title: '积分信息', 
+      dataIndex: 'points_balance', 
+      key: 'points_info',
+      width: 150,
+      render: (balance: number, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500, color: '#1890ff' }}>余额: {balance || 0}</div>
+          <div style={{ fontSize: '12px', color: '#52c41a' }}>
+            总获得: {record.totalEarned || 0}
+          </div>
+          <div style={{ fontSize: '12px', color: '#ff4d4f' }}>
+            总消费: {record.totalSpent || 0}
+          </div>
+        </div>
+      )
+    },
+    { 
+      title: '消费统计', 
+      key: 'consumption_stats',
+      width: 150,
+      render: (text: any, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>
+            {record.totalOrders || 0} 笔订单
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            总金额: ¥{((record.totalAmount || 0) / 100).toFixed(2)}
+          </div>
+        </div>
+      )
+    },
+    { 
+      title: '账户状态', 
       dataIndex: 'status', 
       key: 'status',
+      width: 120,
       render: (status: string) => (
         <Tag color={status === 'active' ? 'green' : 'red'}>
-          {status === 'active' ? '正常' : '禁用'}
+          {status === 'active' ? '正常' : '已锁定'}
         </Tag>
+      )
+    },
+    { 
+      title: '注册时间', 
+      dataIndex: 'createdAt', 
+      key: 'createdAt',
+      width: 150,
+      render: (time: string) => new Date(time).toLocaleString('zh-CN')
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 150,
+      render: (text: any, record: any) => (
+        <div>
+          <Button 
+            size="small" 
+            type={record.status === 'active' ? 'default' : 'primary'}
+            onClick={() => handleToggleUserStatus(record)}
+            style={{ marginRight: 8 }}
+          >
+            {record.status === 'active' ? '锁定' : '解锁'}
+          </Button>
+          <Button 
+            size="small" 
+            onClick={() => handleViewUserDetail(record)}
+          >
+            详情
+          </Button>
+        </div>
       )
     }
   ]
 
   return (
     <div>
-      <h2>用户管理</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>用户管理</h2>
+        <Button 
+          type="primary"
+          onClick={loadUsers}
+          loading={loading}
+        >
+          刷新数据
+        </Button>
+      </div>
+      <div style={{ marginBottom: 16, color: '#666' }}>
+        管理有消费记录的用户，可以锁定/解锁用户参与积分消费的权限。🔒锁定后用户无法扫码消费获得积分
+      </div>
       <Table 
         columns={columns} 
         dataSource={users} 
         loading={loading}
         rowKey="id"
-        pagination={{ pageSize: 20 }}
+        pagination={{ 
+          pageSize: 20,
+          showTotal: (total) => `共 ${total} 个用户`
+        }}
+        scroll={{ x: 1000 }}
       />
+      
+      {/* 用户详情弹窗 */}
+      <Modal
+        title={selectedUser ? `用户详情 - ${selectedUser.nickname}` : '用户详情'}
+        open={userDetailVisible}
+        onCancel={() => {
+          setUserDetailVisible(false)
+          setSelectedUser(null)
+        }}
+        footer={[
+          <Button key="close" onClick={() => setUserDetailVisible(false)}>
+            关闭
+          </Button>,
+          <Button
+            key="edit"
+            type="primary"
+            onClick={() => {
+              setUserDetailVisible(false)
+              if (selectedUser) {
+                handleToggleUserStatus(selectedUser)
+              }
+            }}
+            disabled={!selectedUser}
+          >
+            {selectedUser?.status === 'active' ? '锁定用户' : '解锁用户'}
+          </Button>
+        ]}
+        width={900}
+      >
+        {userDetailLoading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <Spin size="large" />
+            <p style={{ marginTop: 16 }}>加载用户详情...</p>
+          </div>
+        ) : selectedUser ? (
+          <div style={{ marginTop: 16 }}>
+            {/* 基本信息 */}
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card title="基本信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>用户ID:</strong> {selectedUser.id}</p>
+                  <p><strong>昵称:</strong> {selectedUser.nickname || '未设置'}</p>
+                  <p><strong>微信ID:</strong> {selectedUser.wechatId || '未绑定'}</p>
+                  <p><strong>手机号:</strong> {selectedUser.phone || '未设置'}</p>
+                  <p><strong>账户状态:</strong> 
+                    <Tag color={selectedUser.status === 'active' ? 'green' : 'red'}>
+                      {selectedUser.status === 'active' ? '正常' : '已锁定'}
+                    </Tag>
+                  </p>
+                  <p><strong>注册时间:</strong> {new Date(selectedUser.createdAt).toLocaleString()}</p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="积分信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>当前余额:</strong> <span style={{ color: '#1890ff', fontSize: '18px', fontWeight: 'bold' }}>{selectedUser.pointsBalance || 0}</span> 分</p>
+                  <p><strong>累计获得:</strong> <span style={{ color: '#52c41a' }}>{selectedUser.totalEarned || 0}</span> 分</p>
+                  <p><strong>累计消费:</strong> <span style={{ color: '#ff4d4f' }}>{selectedUser.totalSpent || 0}</span> 分</p>
+                  <p><strong>净收益:</strong> <span style={{ color: '#1890ff' }}>{(selectedUser.totalEarned || 0) - (selectedUser.totalSpent || 0)}</span> 分</p>
+                </Card>
+              </Col>
+            </Row>
+            
+            {/* 订单统计 */}
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card title="订单统计" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>总订单数:</strong> {selectedUser.orderStats?.totalOrders || 0} 笔</p>
+                  <p><strong>已支付:</strong> <span style={{ color: '#52c41a' }}>{selectedUser.orderStats?.paidOrders || 0}</span> 笔</p>
+                  <p><strong>待支付:</strong> <span style={{ color: '#faad14' }}>{selectedUser.orderStats?.pendingOrders || 0}</span> 笔</p>
+                  <p><strong>已取消:</strong> <span style={{ color: '#ff4d4f' }}>{selectedUser.orderStats?.cancelledOrders || 0}</span> 笔</p>
+                  <p><strong>总消费金额:</strong> <span style={{ color: '#1890ff', fontWeight: 'bold' }}>¥{((selectedUser.orderStats?.totalAmount || 0) / 100).toFixed(2)}</span></p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="常消费商户" size="small" style={{ marginBottom: 16 }}>
+                  {selectedUser.merchantStats && selectedUser.merchantStats.length > 0 ? (
+                    <div style={{ maxHeight: '150px', overflow: 'auto' }}>
+                      {selectedUser.merchantStats.map((merchant: any, index: number) => (
+                        <div key={index} style={{ marginBottom: '8px', padding: '8px', background: '#f5f5f5', borderRadius: '4px' }}>
+                          <div style={{ fontWeight: 500, fontSize: '12px' }}>{merchant.merchantName}</div>
+                          <div style={{ fontSize: '11px', color: '#666' }}>
+                            {merchant.orderCount}笔 | ¥{(merchant.totalAmount / 100).toFixed(2)} | {merchant.totalPoints}分
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ color: '#999' }}>暂无消费记录</p>
+                  )}
+                </Card>
+              </Col>
+            </Row>
+            
+            {/* 最近积分记录 */}
+            {selectedUser.pointsHistory && selectedUser.pointsHistory.length > 0 && (
+              <Card title="最近积分记录" size="small" style={{ marginBottom: 16 }}>
+                <Table
+                  size="small"
+                  dataSource={selectedUser.pointsHistory}
+                  pagination={false}
+                  rowKey="id"
+                  columns={[
+                    {
+                      title: '积分变动',
+                      dataIndex: 'pointsChange',
+                      key: 'pointsChange',
+                      width: 80,
+                      render: (points: number) => (
+                        <span style={{ color: points > 0 ? '#52c41a' : '#ff4d4f', fontWeight: 500 }}>
+                          {points > 0 ? '+' : ''}{points}
+                        </span>
+                      )
+                    },
+                    {
+                      title: '商户',
+                      dataIndex: 'merchantName',
+                      key: 'merchantName',
+                      width: 180
+                    },
+                    {
+                      title: '描述',
+                      dataIndex: 'description',
+                      key: 'description'
+                    },
+                    {
+                      title: '时间',
+                      dataIndex: 'createdAt',
+                      key: 'createdAt',
+                      width: 120,
+                      render: (time: string) => new Date(time).toLocaleDateString()
+                    }
+                  ]}
+                />
+              </Card>
+            )}
+            
+            {/* 最近订单记录 */}
+            {selectedUser.recentOrders && selectedUser.recentOrders.length > 0 && (
+              <Card title="最近订单记录" size="small">
+                <Table
+                  size="small"
+                  dataSource={selectedUser.recentOrders}
+                  pagination={false}
+                  rowKey="id"
+                  columns={[
+                    {
+                      title: '金额',
+                      dataIndex: 'amount',
+                      key: 'amount',
+                      width: 80,
+                      render: (amount: number) => `¥${(amount / 100).toFixed(2)}`
+                    },
+                    {
+                      title: '积分',
+                      dataIndex: 'pointsAwarded',
+                      key: 'pointsAwarded',
+                      width: 60,
+                      render: (points: number) => <Tag color="green">{points}</Tag>
+                    },
+                    {
+                      title: '商户',
+                      dataIndex: 'merchantName',
+                      key: 'merchantName',
+                      width: 180
+                    },
+                    {
+                      title: '状态',
+                      dataIndex: 'status',
+                      key: 'status',
+                      width: 80,
+                      render: (status: string) => {
+                        const statusMap: any = {
+                          'paid': { color: 'green', text: '已支付' },
+                          'pending': { color: 'orange', text: '待支付' },
+                          'cancelled': { color: 'red', text: '已取消' }
+                        }
+                        const statusInfo = statusMap[status] || { color: 'default', text: status }
+                        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
+                      }
+                    },
+                    {
+                      title: '时间',
+                      dataIndex: 'createdAt',
+                      key: 'createdAt',
+                      width: 120,
+                      render: (time: string) => new Date(time).toLocaleDateString()
+                    }
+                  ]}
+                />
+              </Card>
+            )}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <p>暂无数据</p>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
@@ -306,9 +1073,9 @@ const MerchantsPage: React.FC = () => {
       
       if (result.success) {
         console.log('✅ 商户数据加载成功:', result.data)
-        setMerchants(result.data.merchants || [])
+        setMerchants(result.data || [])
         setDataSource(result.dataSource || 'unknown')
-        message.success(`加载了${result.data.merchants?.length || 0}个商户 (${result.dataSource === 'database' ? '数据库' : '模拟数据'})`)
+        // 移除成功消息提示，只在控制台记录
       } else {
         message.error(result.message || '加载商户数据失败')
       }
@@ -668,7 +1435,7 @@ const MerchantsPage: React.FC = () => {
   const downloadQRCode = () => {
     if (qrCodeData?.qrCodeImage) {
       const link = document.createElement('a')
-      link.href = `data:image/png;base64,${qrCodeData.qrCodeImage}`
+      link.href = qrCodeData.qrCodeImage
       link.download = `qrcode_${selectedMerchant?.merchantId || selectedMerchant?.id}.png`
       link.click()
     }
@@ -1158,7 +1925,7 @@ const MerchantsPage: React.FC = () => {
               margin: '20px 0'
             }}>
               <img 
-                src={`data:image/png;base64,${qrCodeData.qrCodeImage}`}
+                src={qrCodeData.qrCodeImage}
                 alt="商户支付二维码"
                 style={{ width: 200, height: 200 }}
               />
@@ -1615,23 +2382,584 @@ const PointsPage: React.FC = () => {
   }, [])
 
   const columns = [
-    { title: '用户ID', dataIndex: 'user_id', key: 'user_id' },
-    { title: '积分变动', dataIndex: 'points_change', key: 'points_change' },
-    { title: '余额', dataIndex: 'balance_after', key: 'balance_after' },
-    { title: '描述', dataIndex: 'description', key: 'description' },
-    { title: '时间', dataIndex: 'created_at', key: 'created_at' }
+    { 
+      title: '用户信息', 
+      dataIndex: 'user_nickname', 
+      key: 'user_info',
+      width: 150,
+      render: (nickname: string, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{nickname || '未知用户'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>ID: {record.user_id}</div>
+        </div>
+      )
+    },
+    { 
+      title: '积分变动', 
+      dataIndex: 'points_change', 
+      key: 'points_change',
+      width: 100,
+      render: (points: number) => (
+        <span style={{ 
+          color: points > 0 ? '#52c41a' : '#ff4d4f',
+          fontWeight: 500 
+        }}>
+          {points > 0 ? '+' : ''}{points}
+        </span>
+      )
+    },
+    { 
+      title: '当前余额', 
+      dataIndex: 'balance_after', 
+      key: 'balance_after',
+      width: 100
+    },
+    { 
+      title: '消费商户', 
+      dataIndex: 'merchant_name', 
+      key: 'merchant_name',
+      width: 200,
+      render: (merchantName: string, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{merchantName || '未知商户'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {record.record_type === 'payment_reward' ? '支付奖励' : 
+             record.record_type === 'mall_consumption' ? '商城消费' : '管理员调整'}
+          </div>
+        </div>
+      )
+    },
+    { 
+      title: '详细描述', 
+      dataIndex: 'description', 
+      key: 'description',
+      width: 250
+    },
+    { 
+      title: '时间', 
+      dataIndex: 'created_at', 
+      key: 'created_at',
+      width: 150,
+      render: (time: string) => new Date(time).toLocaleString('zh-CN')
+    }
   ]
 
   return (
     <div>
-      <h2>积分管理</h2>
+      <h2>积分管理 - 用户消费记录</h2>
+      <div style={{ marginBottom: 16, color: '#666' }}>
+        查看所有用户的积分获得记录，包含消费商户和详细信息
+      </div>
       <Table 
         columns={columns} 
         dataSource={points} 
         loading={loading}
         rowKey="id"
-        pagination={{ pageSize: 20 }}
+        pagination={{ 
+          pageSize: 20,
+          showTotal: (total) => `共 ${total} 条积分记录`
+        }}
+        scroll={{ x: 1000 }}
       />
+    </div>
+  )
+}
+
+// 订单管理页面（新增功能）
+const OrdersPage: React.FC = () => {
+  const [orders, setOrders] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<any>(null)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0
+  })
+  const [filters, setFilters] = useState({
+    status: '',
+    merchantId: '',
+    search: '',
+    dateFrom: '',
+    dateTo: ''
+  })
+  const [orderDetailVisible, setOrderDetailVisible] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  useEffect(() => {
+    loadOrders()
+    loadStats()
+  }, [pagination.page, pagination.pageSize, filters])
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        pageSize: pagination.pageSize.toString(),
+        ...(filters.status && { status: filters.status }),
+        ...(filters.merchantId && { merchantId: filters.merchantId }),
+        ...(filters.search && { search: filters.search }),
+        ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+        ...(filters.dateTo && { dateTo: filters.dateTo })
+      })
+
+      const result = await apiRequest(`/admin/orders?${params}`)
+      if (result.success) {
+        setOrders(result.data || [])
+        setPagination(prev => ({
+          ...prev,
+          total: result.pagination?.total || 0
+        }))
+      } else {
+        message.error(result.message || '加载订单数据失败')
+      }
+    } catch (error) {
+      console.error('Load orders error:', error)
+      message.error('加载订单数据失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadStats = async () => {
+    try {
+      const result = await apiRequest('/admin/orders/stats')
+      if (result.success) {
+        setStats(result.data)
+      }
+    } catch (error) {
+      console.error('Load stats error:', error)
+    }
+  }
+
+  const handleTableChange = (paginationConfig: any) => {
+    setPagination({
+      page: paginationConfig.current,
+      pageSize: paginationConfig.pageSize,
+      total: paginationConfig.total
+    })
+  }
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const result = await apiRequest(`/admin/orders/${orderId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      })
+      
+      if (result.success) {
+        message.success('订单状态更新成功')
+        loadOrders()
+        loadStats()
+      } else {
+        message.error(result.message || '更新订单状态失败')
+      }
+    } catch (error) {
+      console.error('Update order status error:', error)
+      message.error('更新订单状态失败')
+    }
+  }
+
+  const handleViewDetail = async (order: any) => {
+    setDetailLoading(true)
+    setOrderDetailVisible(true)
+    
+    try {
+      const result = await apiRequest(`/admin/orders/${order.id}`)
+      if (result.success) {
+        setSelectedOrder(result.data.order)
+      } else {
+        message.error('获取订单详情失败')
+        setSelectedOrder(order) // 使用列表数据作为备用
+      }
+    } catch (error) {
+      console.error('Get order detail error:', error)
+      message.error('获取订单详情失败')
+      setSelectedOrder(order) // 使用列表数据作为备用
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  const handleExportOrders = async () => {
+    try {
+      const params = new URLSearchParams({
+        ...(filters.status && { status: filters.status }),
+        ...(filters.merchantId && { merchantId: filters.merchantId }),
+        ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+        ...(filters.dateTo && { dateTo: filters.dateTo }),
+        format: 'json'
+      })
+
+      const result = await apiRequest(`/admin/orders/export?${params}`, {
+        method: 'POST'
+      })
+      
+      if (result.success) {
+        // 创建下载链接
+        const dataStr = JSON.stringify(result.data, null, 2)
+        const dataBlob = new Blob([dataStr], { type: 'application/json' })
+        const url = URL.createObjectURL(dataBlob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `orders_${new Date().toISOString().split('T')[0]}.json`
+        link.click()
+        URL.revokeObjectURL(url)
+        
+        message.success(`成功导出 ${result.data.total} 条订单数据`)
+      } else {
+        message.error('导出订单数据失败')
+      }
+    } catch (error) {
+      console.error('Export orders error:', error)
+      message.error('导出订单数据失败')
+    }
+  }
+
+  const columns = [
+    {
+      title: '订单信息',
+      dataIndex: 'orderNo',
+      key: 'orderNo',
+      width: 200,
+      render: (text: string, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500, marginBottom: 4 }}>
+            <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
+              {text}
+            </Button>
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            ID: {record.id}
+          </div>
+          <div style={{ fontSize: '12px', color: '#999' }}>
+            {new Date(record.createdAt).toLocaleString()}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '用户信息',
+      dataIndex: 'user',
+      key: 'user',
+      width: 150,
+      render: (user: any) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{user?.nickname || '未知用户'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>ID: {user?.id || '-'}</div>
+        </div>
+      )
+    },
+    {
+      title: '商户信息',
+      dataIndex: 'merchant',
+      key: 'merchant',
+      width: 180,
+      render: (merchant: any) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{merchant?.merchantName || '未知商户'}</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>{merchant?.contactPerson || ''}</div>
+        </div>
+      )
+    },
+    {
+      title: '订单金额',
+      dataIndex: 'amount',
+      key: 'amount',
+      width: 120,
+      render: (amount: number) => (
+        <div>
+          <div style={{ fontWeight: 500, color: '#1890ff' }}>
+            ¥{(amount / 100).toFixed(2)}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '奖励积分',
+      dataIndex: 'pointsAwarded',
+      key: 'pointsAwarded',
+      width: 100,
+      render: (points: number) => (
+        <Tag color="green">{points || 0}分</Tag>
+      )
+    },
+    {
+      title: '订单状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
+      render: (status: string, record: any) => {
+        const statusMap: any = {
+          'pending': { color: 'orange', text: '待支付' },
+          'paid': { color: 'green', text: '已支付' },
+          'cancelled': { color: 'red', text: '已取消' },
+          'expired': { color: 'gray', text: '已过期' },
+          'refunded': { color: 'purple', text: '已退款' }
+        }
+        const statusInfo = statusMap[status] || { color: 'default', text: status }
+        
+        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
+      }
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 150,
+      render: (text: any, record: any) => (
+        <div>
+          <Button 
+            size="small" 
+            onClick={() => handleViewDetail(record)}
+            style={{ marginRight: 8 }}
+          >
+            详情
+          </Button>
+          {record.status === 'pending' && (
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'cancel',
+                    label: '取消订单',
+                    onClick: () => handleStatusChange(record.id, 'cancelled')
+                  }
+                ]
+              }}
+              trigger={['click']}
+            >
+              <Button size="small">操作</Button>
+            </Dropdown>
+          )}
+        </div>
+      )
+    }
+  ]
+
+  return (
+    <div>
+      {/* 统计卡片 */}
+      {stats && (
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={6}>
+            <Card>
+              <Statistic title="总订单数" value={stats.overview?.totalOrders || 0} />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic 
+                title="已支付订单" 
+                value={stats.overview?.paidOrders || 0}
+                valueStyle={{ color: '#3f8600' }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic 
+                title="总交易金额" 
+                value={(stats.overview?.totalAmount || 0) / 100}
+                precision={2}
+                prefix="¥"
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic 
+                title="支付成功率" 
+                value={stats.overview?.successRate || 0}
+                precision={1}
+                suffix="%"
+                valueStyle={{ color: '#cf1322' }}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      {/* 订单列表 */}
+      <Card 
+        title="订单管理" 
+        extra={
+          <div>
+            <Button 
+              onClick={loadOrders}
+              loading={loading}
+              style={{ marginRight: 8 }}
+            >
+              刷新数据
+            </Button>
+            <Button 
+              type="primary"
+              onClick={handleExportOrders}
+            >
+              导出数据
+            </Button>
+          </div>
+        }
+      >
+        {/* 搜索和筛选 */}
+        <div style={{ marginBottom: 16, background: '#f5f5f5', padding: 16, borderRadius: 6 }}>
+          <Row gutter={16}>
+            <Col span={6}>
+              <Input.Search
+                placeholder="搜索订单号、商户、用户"
+                allowClear
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                onSearch={loadOrders}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col span={4}>
+              <Select
+                placeholder="订单状态"
+                allowClear
+                value={filters.status}
+                onChange={(value) => setFilters(prev => ({ ...prev, status: value || '' }))}
+                style={{ width: '100%' }}
+              >
+                <Select.Option value="pending">待支付</Select.Option>
+                <Select.Option value="paid">已支付</Select.Option>
+                <Select.Option value="cancelled">已取消</Select.Option>
+                <Select.Option value="expired">已过期</Select.Option>
+                <Select.Option value="refunded">已退款</Select.Option>
+              </Select>
+            </Col>
+            <Col span={6}>
+              <Input
+                placeholder="商户ID"
+                allowClear
+                value={filters.merchantId}
+                onChange={(e) => setFilters(prev => ({ ...prev, merchantId: e.target.value }))}
+                style={{ width: '100%' }}
+              />
+            </Col>
+            <Col span={4}>
+              <Button type="primary" onClick={loadOrders} style={{ width: '100%' }}>
+                搜索
+              </Button>
+            </Col>
+          </Row>
+        </div>
+        
+        <Table 
+          columns={columns} 
+          dataSource={orders} 
+          loading={loading}
+          rowKey="id"
+          pagination={{
+            current: pagination.page,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showTotal: (total) => `共 ${total} 个订单`,
+            showSizeChanger: true,
+            showQuickJumper: true
+          }}
+          onChange={handleTableChange}
+          scroll={{ x: 1000 }}
+        />
+      </Card>
+
+      {/* 订单详情弹窗 */}
+      <Modal
+        title={selectedOrder ? `订单详情 - ${selectedOrder.orderNo}` : '订单详情'}
+        open={orderDetailVisible}
+        onCancel={() => {
+          setOrderDetailVisible(false)
+          setSelectedOrder(null)
+        }}
+        footer={[
+          <Button key="close" onClick={() => setOrderDetailVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={800}
+      >
+        {detailLoading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <Spin size="large" />
+            <p style={{ marginTop: 16 }}>加载订单详情...</p>
+          </div>
+        ) : selectedOrder ? (
+          <div style={{ marginTop: 16 }}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card title="订单信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>订单号:</strong> {selectedOrder.orderNo}</p>
+                  <p><strong>订单金额:</strong> ¥{(selectedOrder.amount / 100).toFixed(2)}</p>
+                  <p><strong>奖励积分:</strong> {selectedOrder.pointsAwarded}</p>
+                  <p><strong>订单状态:</strong> 
+                    <Tag color={selectedOrder.status === 'paid' ? 'green' : 'orange'}>
+                      {selectedOrder.status === 'paid' ? '已支付' : '待支付'}
+                    </Tag>
+                  </p>
+                  <p><strong>支付方式:</strong> {selectedOrder.paymentMethod}</p>
+                  <p><strong>微信交易号:</strong> {selectedOrder.transactionId || '无'}</p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="时间信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>创建时间:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                  <p><strong>支付时间:</strong> {selectedOrder.paidAt ? new Date(selectedOrder.paidAt).toLocaleString() : '未支付'}</p>
+                  <p><strong>过期时间:</strong> {selectedOrder.expiredAt ? new Date(selectedOrder.expiredAt).toLocaleString() : '无'}</p>
+                  <p><strong>更新时间:</strong> {selectedOrder.updatedAt ? new Date(selectedOrder.updatedAt).toLocaleString() : '无'}</p>
+                </Card>
+              </Col>
+            </Row>
+            
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card title="用户信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>用户昵称:</strong> {selectedOrder.user?.nickname || '未知'}</p>
+                  <p><strong>微信ID:</strong> {selectedOrder.user?.wechatId || '未知'}</p>
+                  <p><strong>手机号:</strong> {selectedOrder.user?.phone || '未设置'}</p>
+                  <p><strong>积分余额:</strong> {selectedOrder.user?.pointsBalance || 0}</p>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="商户信息" size="small" style={{ marginBottom: 16 }}>
+                  <p><strong>商户名称:</strong> {selectedOrder.merchant?.merchantName || '未知'}</p>
+                  <p><strong>商户编号:</strong> {selectedOrder.merchant?.merchantNo || '未设置'}</p>
+                  <p><strong>联系人:</strong> {selectedOrder.merchant?.contactPerson || '未设置'}</p>
+                  <p><strong>联系电话:</strong> {selectedOrder.merchant?.contactPhone || '未设置'}</p>
+                  <p><strong>特约商户号:</strong> {selectedOrder.merchant?.subMchId || '未设置'}</p>
+                </Card>
+              </Col>
+            </Row>
+
+            {selectedOrder.pointsRecords && selectedOrder.pointsRecords.length > 0 && (
+              <Card title="积分记录" size="small">
+                <Table
+                  size="small"
+                  dataSource={selectedOrder.pointsRecords}
+                  pagination={false}
+                  columns={[
+                    { title: '积分变动', dataIndex: 'pointsChange', key: 'pointsChange' },
+                    { title: '变动后余额', dataIndex: 'pointsBalance', key: 'pointsBalance' },
+                    { title: '来源', dataIndex: 'source', key: 'source' },
+                    { title: '描述', dataIndex: 'description', key: 'description' },
+                    { 
+                      title: '时间', 
+                      dataIndex: 'createdAt', 
+                      key: 'createdAt',
+                      render: (time: string) => new Date(time).toLocaleString()
+                    }
+                  ]}
+                />
+              </Card>
+            )}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <p>暂无数据</p>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
@@ -1662,6 +2990,12 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       onClick: () => navigate('/merchants')
     },
     {
+      key: 'orders',
+      icon: <FileTextOutlined />,
+      label: '订单管理',
+      onClick: () => navigate('/orders')
+    },
+    {
       key: 'points',
       icon: <GiftOutlined />,
       label: '积分管理',
@@ -1681,13 +3015,14 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     message.success('已退出登录')
   }
 
-  const userMenu = (
-    <Menu>
-      <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>
-        退出登录
-      </Menu.Item>
-    </Menu>
-  )
+  const userMenuItems = [
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: '退出登录',
+      onClick: handleLogout
+    }
+  ]
 
   // 获取当前选中的菜单
   const getSelectedKey = () => {
@@ -1695,6 +3030,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (path.includes('/dashboard')) return 'dashboard'
     if (path.includes('/users')) return 'users'
     if (path.includes('/merchants')) return 'merchants'
+    if (path.includes('/orders')) return 'orders'
     if (path.includes('/points')) return 'points'
     if (path.includes('/settings')) return 'settings'
     return 'dashboard'
@@ -1720,7 +3056,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
           />
-          <Dropdown overlay={userMenu} placement="bottomRight">
+          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
             <div style={{ cursor: 'pointer' }}>
               <Avatar icon={<UserOutlined />} />
               <span style={{ marginLeft: 8 }}>系统管理员</span>
@@ -1746,16 +3082,878 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>
 }
 
-// 系统设置页面
+// 系统设置页面 - 管理员用户管理
 const SettingsPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('admin-users')
+  const [adminUsers, setAdminUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState<any>(null)
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0 })
+  
+  // 模态框状态
+  const [createModalVisible, setCreateModalVisible] = useState(false)
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [createLoading, setCreateLoading] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  
+  // 表单数据
+  const [createForm, setCreateForm] = useState({
+    username: '',
+    password: '',
+    realName: '',
+    email: '',
+    phone: '',
+    role: 'admin',
+    permissions: {
+      users: true,
+      merchants: true,
+      orders: true,
+      points: true,
+      settings: false,
+      admin_users: false
+    }
+  })
+  
+  const [editForm, setEditForm] = useState({
+    id: '',
+    username: '',
+    realName: '',
+    email: '',
+    phone: '',
+    role: 'admin',
+    status: 'active',
+    permissions: {
+      users: true,
+      merchants: true,
+      orders: true,
+      points: true,
+      settings: false,
+      admin_users: false
+    }
+  })
+
+  // 加载管理员用户列表
+  const loadAdminUsers = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        pageSize: pagination.pageSize.toString()
+      })
+      
+      const result = await apiRequest(`/admin/admin-users?${params}`)
+      if (result.success) {
+        setAdminUsers(result.data || [])
+        setStats(result.stats || {})
+        setPagination(prev => ({
+          ...prev,
+          total: result.pagination?.total || 0
+        }))
+      } else {
+        message.error(result.message || '加载管理员用户失败')
+      }
+    } catch (error) {
+      console.error('Load admin users error:', error)
+      message.error('加载管理员用户失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'admin-users') {
+      loadAdminUsers()
+    }
+  }, [activeTab, pagination.page, pagination.pageSize])
+
+  // 创建管理员用户
+  const handleCreateUser = async () => {
+    try {
+      setCreateLoading(true)
+      
+      // 验证必填字段
+      if (!createForm.username || !createForm.password) {
+        message.error('用户名和密码为必填项')
+        return
+      }
+      
+      const result = await apiRequest('/admin/admin-users', {
+        method: 'POST',
+        body: JSON.stringify(createForm)
+      })
+      
+      if (result.success) {
+        message.success('管理员用户创建成功')
+        setCreateModalVisible(false)
+        setCreateForm({
+          username: '',
+          password: '',
+          realName: '',
+          email: '',
+          phone: '',
+          role: 'admin',
+          permissions: {
+            users: true,
+            merchants: true,
+            orders: true,
+            points: true,
+            settings: false,
+            admin_users: false
+          }
+        })
+        loadAdminUsers()
+      } else {
+        message.error(result.message || '创建管理员用户失败')
+      }
+    } catch (error) {
+      console.error('Create admin user error:', error)
+      message.error('创建管理员用户失败')
+    } finally {
+      setCreateLoading(false)
+    }
+  }
+
+  // 编辑管理员用户
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user)
+    setEditForm({
+      id: user.id,
+      username: user.username,
+      realName: user.realName || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      role: user.role,
+      status: user.status,
+      permissions: user.permissions || {
+        users: true,
+        merchants: true,
+        orders: true,
+        points: true,
+        settings: false,
+        admin_users: false
+      }
+    })
+    setEditModalVisible(true)
+  }
+
+  // 保存编辑
+  const handleSaveEdit = async () => {
+    try {
+      setEditLoading(true)
+      
+      const result = await apiRequest(`/admin/admin-users/${editForm.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          realName: editForm.realName,
+          email: editForm.email,
+          phone: editForm.phone,
+          role: editForm.role,
+          status: editForm.status,
+          permissions: editForm.permissions
+        })
+      })
+      
+      if (result.success) {
+        message.success('管理员用户更新成功')
+        setEditModalVisible(false)
+        loadAdminUsers()
+      } else {
+        message.error(result.message || '更新管理员用户失败')
+      }
+    } catch (error) {
+      console.error('Update admin user error:', error)
+      message.error('更新管理员用户失败')
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  // 删除管理员用户
+  const handleDeleteUser = (user: any) => {
+    if (user.role === 'super_admin') {
+      message.error('不能删除超级管理员')
+      return
+    }
+    
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除管理员用户 "${user.username}" 吗？此操作不可恢复。`,
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          const result = await apiRequest(`/admin/admin-users/${user.id}`, {
+            method: 'DELETE'
+          })
+          
+          if (result.success) {
+            message.success('管理员用户删除成功')
+            loadAdminUsers()
+          } else {
+            message.error(result.message || '删除管理员用户失败')
+          }
+        } catch (error) {
+          console.error('Delete admin user error:', error)
+          message.error('删除管理员用户失败')
+        }
+      }
+    })
+  }
+
+  // 重置密码
+  const handleResetPassword = (user: any) => {
+    Modal.confirm({
+      title: '重置密码',
+      content: (
+        <div>
+          <p>确定要重置用户 "{user.username}" 的密码吗？</p>
+          <p style={{ color: '#fa8c16' }}>新密码将设置为: <strong>123456</strong></p>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          const result = await apiRequest(`/admin/admin-users/${user.id}/reset-password`, {
+            method: 'POST',
+            body: JSON.stringify({ newPassword: '123456' })
+          })
+          
+          if (result.success) {
+            message.success('密码重置成功，新密码为: 123456')
+          } else {
+            message.error(result.message || '密码重置失败')
+          }
+        } catch (error) {
+          console.error('Reset password error:', error)
+          message.error('密码重置失败')
+        }
+      }
+    })
+  }
+
+  // 管理员用户表格列定义
+  const adminUserColumns = [
+    {
+      title: '用户信息',
+      dataIndex: 'username',
+      key: 'username',
+      width: 200,
+      render: (text: string, record: any) => (
+        <div>
+          <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center' }}>
+            {record.role === 'super_admin' ? <CrownOutlined style={{ color: '#faad14', marginRight: 4 }} /> : 
+             record.role === 'admin' ? <TeamOutlined style={{ color: '#1890ff', marginRight: 4 }} /> :
+             <UserOutlined style={{ color: '#52c41a', marginRight: 4 }} />}
+            {text}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {record.realName || '未设置姓名'}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '角色权限',
+      dataIndex: 'role',
+      key: 'role',
+      width: 150,
+      render: (role: string, record: any) => {
+        const roleMap: any = {
+          'super_admin': { color: 'gold', text: '超级管理员', icon: <CrownOutlined /> },
+          'admin': { color: 'blue', text: '管理员', icon: <TeamOutlined /> },
+          'readonly': { color: 'green', text: '只读用户', icon: <EyeOutlined /> }
+        }
+        const roleInfo = roleMap[role] || { color: 'default', text: role, icon: <UserOutlined /> }
+        
+        return (
+          <div>
+            <Tag color={roleInfo.color} icon={roleInfo.icon}>
+              {roleInfo.text}
+            </Tag>
+            <div style={{ fontSize: '11px', color: '#999', marginTop: 2 }}>
+              权限: {Object.values(record.permissions || {}).filter(Boolean).length} 项
+            </div>
+          </div>
+        )
+      }
+    },
+    {
+      title: '联系信息',
+      key: 'contact',
+      width: 180,
+      render: (text: any, record: any) => (
+        <div>
+          <div style={{ fontSize: '12px' }}>
+            📧 {record.email || '未设置'}
+          </div>
+          <div style={{ fontSize: '12px', marginTop: 2 }}>
+            📱 {record.phone || '未设置'}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (status: string) => {
+        const statusMap: any = {
+          'active': { color: 'green', text: '正常', icon: <CheckCircleOutlined /> },
+          'locked': { color: 'red', text: '锁定', icon: <LockOutlined /> },
+          'suspended': { color: 'orange', text: '暂停', icon: <ExclamationCircleOutlined /> }
+        }
+        const statusInfo = statusMap[status] || { color: 'default', text: status, icon: <QuestionCircleOutlined /> }
+        
+        return (
+          <Tag color={statusInfo.color} icon={statusInfo.icon}>
+            {statusInfo.text}
+          </Tag>
+        )
+      }
+    },
+    {
+      title: '最后登录',
+      dataIndex: 'lastLoginAt',
+      key: 'lastLoginAt',
+      width: 120,
+      render: (time: string) => (
+        <div style={{ fontSize: '12px' }}>
+          {time ? new Date(time).toLocaleDateString('zh-CN') : '从未登录'}
+        </div>
+      )
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 200,
+      render: (text: any, record: any) => (
+        <div>
+          <Button 
+            size="small" 
+            type="primary"
+            icon={<EditOutlined />}
+            onClick={() => handleEditUser(record)}
+            style={{ marginRight: 4 }}
+          >
+            编辑
+          </Button>
+          <Button 
+            size="small" 
+            icon={<KeyOutlined />}
+            onClick={() => handleResetPassword(record)}
+            style={{ marginRight: 4 }}
+          >
+            重置密码
+          </Button>
+          {record.role !== 'super_admin' && (
+            <Button 
+              size="small" 
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeleteUser(record)}
+            >
+              删除
+            </Button>
+          )}
+        </div>
+      )
+    }
+  ]
+
+  const tabItems = [
+    {
+      key: 'admin-users',
+      label: (
+        <span>
+          <TeamOutlined />
+          管理员用户
+        </span>
+      )
+    },
+    {
+      key: 'system-status',
+      label: (
+        <span>
+          <SafetyOutlined />
+          系统状态
+        </span>
+      )
+    }
+  ]
+
   return (
     <div>
-      <h2>系统设置</h2>
-      <Card title="系统状态">
-        <p>✅ API服务运行正常</p>
-        <p>✅ 数据库连接正常</p>
-        <p>✅ 系统版本: v1.0.0</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>系统设置</h2>
+          <p style={{ margin: '4px 0 0 0', color: '#666' }}>
+            管理员账户管理和系统配置
+          </p>
+        </div>
+      </div>
+
+      <Card>
+        <Tabs 
+          activeKey={activeTab} 
+          onChange={setActiveTab} 
+          items={tabItems.map(tab => ({
+            ...tab,
+            children: tab.key === 'admin-users' ? (
+              <div>
+                {/* 统计卡片 */}
+                {stats && (
+                  <Row gutter={16} style={{ marginBottom: 16 }}>
+                    <Col span={6}>
+                      <Card size="small">
+                        <Statistic
+                          title="总管理员"
+                          value={stats.total || 0}
+                          prefix={<TeamOutlined />}
+                          valueStyle={{ color: '#1890ff' }}
+                        />
+                      </Card>
+                    </Col>
+                    <Col span={6}>
+                      <Card size="small">
+                        <Statistic
+                          title="在线状态"
+                          value={stats.active || 0}
+                          prefix={<CheckCircleOutlined />}
+                          valueStyle={{ color: '#52c41a' }}
+                        />
+                      </Card>
+                    </Col>
+                    <Col span={6}>
+                      <Card size="small">
+                        <Statistic
+                          title="超级管理员"
+                          value={stats.superAdmins || 0}
+                          prefix={<CrownOutlined />}
+                          valueStyle={{ color: '#faad14' }}
+                        />
+                      </Card>
+                    </Col>
+                    <Col span={6}>
+                      <Card size="small">
+                        <Statistic
+                          title="普通管理员"
+                          value={stats.admins || 0}
+                          prefix={<UserOutlined />}
+                          valueStyle={{ color: '#722ed1' }}
+                        />
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
+                
+                {/* 操作按钮 */}
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <Button 
+                      type="primary" 
+                      icon={<PlusOutlined />}
+                      onClick={() => setCreateModalVisible(true)}
+                      style={{ marginRight: 8 }}
+                    >
+                      添加管理员
+                    </Button>
+                    <Button 
+                      icon={<ReloadOutlined />}
+                      onClick={loadAdminUsers}
+                      loading={loading}
+                    >
+                      刷新
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 管理员列表 */}
+                <Table
+                  columns={adminUserColumns}
+                  dataSource={adminUsers}
+                  loading={loading}
+                  rowKey="id"
+                  pagination={{
+                    current: pagination.page,
+                    pageSize: pagination.pageSize,
+                    total: pagination.total,
+                    showTotal: (total) => `共 ${total} 个管理员`,
+                    showSizeChanger: true,
+                    onChange: (page, pageSize) => {
+                      setPagination({ page, pageSize: pageSize || 10, total: pagination.total })
+                    }
+                  }}
+                  scroll={{ x: 1000 }}
+                />
+              </div>
+            ) : (
+              <div>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Card title="系统状态" size="small">
+                      <div style={{ padding: '16px 0' }}>
+                        <p style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                          <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                          API服务运行正常
+                        </p>
+                        <p style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                          <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                          数据库连接正常
+                        </p>
+                        <p style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                          <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                          系统版本: v1.0.0
+                        </p>
+                        <p style={{ display: 'flex', alignItems: 'center', marginBottom: 0 }}>
+                          <SecurityScanOutlined style={{ color: '#1890ff', marginRight: 8 }} />
+                          安全状态: 正常
+                        </p>
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col span={12}>
+                    <Card title="系统信息" size="small">
+                      <div style={{ padding: '16px 0' }}>
+                        <p><strong>服务器时间:</strong> {new Date().toLocaleString('zh-CN')}</p>
+                        <p><strong>运行时长:</strong> 正常运行</p>
+                        <p><strong>数据库:</strong> MySQL 8.0</p>
+                        <p><strong>缓存状态:</strong> Redis 正常</p>
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+              </div>
+            )
+          }))}
+        />
       </Card>
+
+      {/* 创建管理员用户弹窗 */}
+      <Modal
+        title="添加管理员用户"
+        open={createModalVisible}
+        onOk={handleCreateUser}
+        onCancel={() => setCreateModalVisible(false)}
+        confirmLoading={createLoading}
+        width={600}
+      >
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="用户名" required>
+                <Input
+                  value={createForm.username}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="请输入用户名"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="密码" required>
+                <Input.Password
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="请输入密码"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="真实姓名">
+                <Input
+                  value={createForm.realName}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, realName: e.target.value }))}
+                  placeholder="请输入真实姓名"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="角色">
+                <Select
+                  value={createForm.role}
+                  onChange={(value) => setCreateForm(prev => ({ ...prev, role: value }))}
+                >
+                  <Select.Option value="admin">管理员</Select.Option>
+                  <Select.Option value="readonly">只读用户</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="邮箱">
+                <Input
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="请输入邮箱"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="手机号">
+                <Input
+                  value={createForm.phone}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="请输入手机号"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Form.Item label="权限设置">
+            <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, padding: 12 }}>
+              <Row gutter={[16, 8]}>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={createForm.permissions.users}
+                      onChange={(e) => setCreateForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, users: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    用户管理
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={createForm.permissions.merchants}
+                      onChange={(e) => setCreateForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, merchants: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    商户管理
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={createForm.permissions.orders}
+                      onChange={(e) => setCreateForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, orders: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    订单管理
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={createForm.permissions.points}
+                      onChange={(e) => setCreateForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, points: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    积分管理
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={createForm.permissions.settings}
+                      onChange={(e) => setCreateForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, settings: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    系统设置
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={createForm.permissions.admin_users}
+                      onChange={(e) => setCreateForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, admin_users: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    管理员管理
+                  </label>
+                </Col>
+              </Row>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 编辑管理员用户弹窗 */}
+      <Modal
+        title={`编辑管理员用户 - ${editForm.username}`}
+        open={editModalVisible}
+        onOk={handleSaveEdit}
+        onCancel={() => setEditModalVisible(false)}
+        confirmLoading={editLoading}
+        width={600}
+      >
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="真实姓名">
+                <Input
+                  value={editForm.realName}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, realName: e.target.value }))}
+                  placeholder="请输入真实姓名"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="状态">
+                <Select
+                  value={editForm.status}
+                  onChange={(value) => setEditForm(prev => ({ ...prev, status: value }))}
+                >
+                  <Select.Option value="active">正常</Select.Option>
+                  <Select.Option value="locked">锁定</Select.Option>
+                  <Select.Option value="suspended">暂停</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="角色">
+                <Select
+                  value={editForm.role}
+                  onChange={(value) => setEditForm(prev => ({ ...prev, role: value }))}
+                  disabled={selectedUser?.role === 'super_admin'}
+                >
+                  <Select.Option value="admin">管理员</Select.Option>
+                  <Select.Option value="readonly">只读用户</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="邮箱">
+                <Input
+                  value={editForm.email}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="请输入邮箱"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Form.Item label="手机号">
+            <Input
+              value={editForm.phone}
+              onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="请输入手机号"
+            />
+          </Form.Item>
+          
+          <Form.Item label="权限设置">
+            <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, padding: 12 }}>
+              <Row gutter={[16, 8]}>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={editForm.permissions.users}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, users: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    用户管理
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={editForm.permissions.merchants}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, merchants: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    商户管理
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={editForm.permissions.orders}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, orders: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    订单管理
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={editForm.permissions.points}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, points: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    积分管理
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={editForm.permissions.settings}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, settings: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    系统设置
+                  </label>
+                </Col>
+                <Col span={8}>
+                  <label style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={editForm.permissions.admin_users}
+                      onChange={(e) => setEditForm(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, admin_users: e.target.checked }
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    管理员管理
+                  </label>
+                </Col>
+              </Row>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }
@@ -1763,13 +3961,14 @@ const SettingsPage: React.FC = () => {
 // 主应用组件
 function App() {
   return (
-    <ConfigProvider locale={zhCN}>
-      <Router basename="/admin">
-        <div className="App">
-          <Routes>
-            {/* 根路径重定向到登录页 */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<LoginPage />} />
+    <ErrorBoundary>
+      <ConfigProvider locale={zhCN}>
+        <Router basename="/admin">
+          <div className="App">
+            <Routes>
+              {/* 根路径重定向到登录页 */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/login" element={<LoginPage />} />
             
             {/* 受保护的路由 */}
             <Route path="/dashboard" element={
@@ -1793,6 +3992,13 @@ function App() {
                 </MainLayout>
               </AuthGuard>
             } />
+            <Route path="/orders" element={
+              <AuthGuard>
+                <MainLayout>
+                  <OrdersPage />
+                </MainLayout>
+              </AuthGuard>
+            } />
             <Route path="/points" element={
               <AuthGuard>
                 <MainLayout>
@@ -1811,6 +4017,7 @@ function App() {
         </div>
       </Router>
     </ConfigProvider>
+    </ErrorBoundary>
   )
 }
 

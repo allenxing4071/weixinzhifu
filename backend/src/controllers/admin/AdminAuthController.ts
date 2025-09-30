@@ -52,7 +52,7 @@ export class AdminAuthController {
         await AdminOperationLogModel.create({
           adminId: '',
           adminName: username,
-          operationType: 'LOGIN_FAILED',
+          operation: 'LOGIN_FAILED',
           operationDesc: '用户名不存在',
           ipAddress: clientIP,
           userAgent,
@@ -123,7 +123,7 @@ export class AdminAuthController {
         await AdminOperationLogModel.create({
           adminId: adminUser.id,
           adminName: adminUser.realName,
-          operationType: 'LOGIN_FAILED',
+          operation: 'LOGIN_FAILED',
           operationDesc: '密码错误',
           ipAddress: clientIP,
           userAgent,
@@ -176,7 +176,7 @@ export class AdminAuthController {
       await AdminOperationLogModel.create({
         adminId: adminUser.id,
         adminName: adminUser.realName,
-        operationType: 'LOGIN_SUCCESS',
+        operation: 'LOGIN_SUCCESS',
         operationDesc: '管理员登录成功',
         ipAddress: clientIP,
         userAgent,
@@ -301,7 +301,7 @@ export class AdminAuthController {
         await AdminOperationLogModel.create({
           adminId,
           adminName: (req as any).adminUser?.realName,
-          operationType: 'LOGOUT',
+          operation: 'LOGOUT',
           operationDesc: '管理员登出',
           ipAddress: req.ip || '',
           userAgent: req.get('User-Agent') || '',
@@ -423,7 +423,7 @@ export class AdminAuthController {
       await AdminOperationLogModel.create({
         adminId,
         adminName: adminUser.realName,
-        operationType: 'CHANGE_PASSWORD',
+        operation: 'CHANGE_PASSWORD',
         operationDesc: '管理员修改密码',
         ipAddress: req.ip || '',
         userAgent: req.get('User-Agent') || '',

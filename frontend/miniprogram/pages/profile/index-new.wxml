@@ -4,7 +4,7 @@
   <!-- 用户信息卡片 -->
   <view class="user-card">
     <view wx:if="{{userInfo}}" class="user-content">
-      <image class="user-avatar" src="{{userInfo.avatar || '/images/default-avatar.png'}}"></image>
+      <image class="user-avatar" src="{{userInfo.avatar || 'https://via.placeholder.com/120x120/667eea/ffffff?text=用户'}}"></image>
       <view class="user-details">
         <view class="user-name">{{userInfo.nickname}}</view>
         <view class="user-id">ID: {{userInfo.id}}</view>

@@ -64,13 +64,14 @@ Nginx: 反向代理 + HTTPS + HTTP/2
 ## 📁 文件路径参考
 
 ### 部署脚本
-- `deploy-admin-complete.sh` - 管理后台部署
-- `deploy-backend-complete.sh` - 后端部署
-- `deploy-ssl-cert.sh` - SSL证书部署
+- `scripts/deploy/deploy-admin-complete.sh` - 管理后台部署
+- `scripts/deploy/deploy-backend-complete.sh` - 后端部署
+- `scripts/deploy/deploy-ssl-cert.sh` - SSL证书部署
+- `scripts/utils/cleanup-project.sh` - 项目清理脚本
 
 ### SSH连接
-- 密钥: `weixinpay.pem`
-- 命令: `ssh -i weixinpay.pem root@8.156.84.226`
+- 密钥: `config/ssh/weixinpay.pem`
+- 命令: `ssh -i config/ssh/weixinpay.pem root@8.156.84.226`
 
 ### 数据库表
 - `users` - 用户表

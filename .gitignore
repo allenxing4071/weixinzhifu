@@ -68,6 +68,18 @@ certs/
 *.cert
 *.crt
 
+# 配置目录中的敏感文件
+config/ssh/*.pem
+config/ssh/*.key
+config/ssl/*.crt
+config/ssl/*.pem
+config/ssl/*.key
+config/ssl/*/
+
 # 数据库备份
 *.sql.backup
 *.dump
+
+# 编辑器配置（可选保留）
+# .editorconfig
+# .nvmrc

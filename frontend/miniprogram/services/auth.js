@@ -4,8 +4,6 @@
 
 import request from '../utils/request.js'
 
-const app = getApp()
-
 export class AuthService {
   /**
    * 微信登录
@@ -28,8 +26,8 @@ export class AuthService {
         // 3. 保存登录状态
         const { token, userInfo: userData } = response.data
         
-        app.globalData.token = token
-        app.globalData.userInfo = userData
+        getApp().globalData.token = token
+        getApp().globalData.userInfo = userData
         
         wx.setStorageSync('token', token)
         wx.setStorageSync('userInfo', userData)
@@ -74,7 +72,7 @@ export class AuthService {
       
       if (response.success) {
         const userInfo = response.data
-        app.globalData.userInfo = userInfo
+        getApp().globalData.userInfo = userInfo
         wx.setStorageSync('userInfo', userInfo)
         return userInfo
       } else {
@@ -110,14 +108,14 @@ export class AuthService {
    * 检查登录状态
    */
   static isLoggedIn() {
-    return !!(app.globalData.token && app.globalData.userInfo)
+    return !!(getApp().globalData.token && getApp().globalData.userInfo)
   }
 
   /**
    * 退出登录
    */
   static logout() {
-    app.clearLoginState()
+    getApp().clearLoginState()
     
     wx.showToast({
       title: '已退出登录',

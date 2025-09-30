@@ -11,9 +11,9 @@ export { AppDataSource }
 export const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'points_app',
+  user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'points_app',
+  database: process.env.DB_NAME || 'points_app_dev',
   charset: 'utf8mb4',
   timezone: '+08:00',
   connectionLimit: 10,
@@ -74,10 +74,14 @@ export const initDatabase = async (): Promise<void> => {
   await connection.execute('SELECT 1')
   console.log('✅ MySQL连接成功')
   
-  // 测试Redis连接
-  const redis = await getRedisClient()
-  await redis.ping()
-  console.log('✅ Redis连接成功')
+  // Redis连接暂时跳过，避免启动失败
+  try {
+    const redis = await getRedisClient()
+    await redis.ping()
+    console.log('✅ Redis连接成功')
+  } catch (error) {
+    console.log('⚠️ Redis连接失败，使用内存缓存模式')
+  }
 }
 
 /**

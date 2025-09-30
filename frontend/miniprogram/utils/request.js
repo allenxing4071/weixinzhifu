@@ -1,5 +1,4 @@
 // utils/request.js - 统一网络请求工具
-const app = getApp()
 
 /**
  * 统一网络请求方法
@@ -12,7 +11,7 @@ const app = getApp()
 export function requestAPI(url, method = 'GET', data = {}, customHeaders = {}) {
   return new Promise((resolve, reject) => {
     // 构建完整URL
-    const fullUrl = `${app.globalData.baseUrl}${url}`
+    const fullUrl = `${getApp().globalData.baseUrl}${url}`
     
     // 构建请求头
     const headers = {
@@ -21,8 +20,8 @@ export function requestAPI(url, method = 'GET', data = {}, customHeaders = {}) {
     }
     
     // 如果有token且不是登录接口，添加Authorization头
-    if (app.globalData.token && !url.includes('/auth/wechat-login')) {
-      headers['Authorization'] = `Bearer ${app.globalData.token}`
+    if (getApp().globalData.token && !url.includes('/auth/wechat-login')) {
+      headers['Authorization'] = `Bearer ${getApp().globalData.token}`
     }
     
     console.log(`📡 发起请求: ${method} ${fullUrl}`, { data, headers })
@@ -46,14 +45,14 @@ export function requestAPI(url, method = 'GET', data = {}, customHeaders = {}) {
         } else if (res.statusCode === 401) {
           // Token过期或无效
           console.warn('🔑 Token过期，清除登录状态')
-          app.clearLoginState()
+          getApp().clearLoginState()
           
           wx.showModal({
             title: '登录过期',
             content: '请重新登录',
             showCancel: false,
             success: () => {
-              app.doWechatLogin()
+              getApp().doWechatLogin()
             }
           })
           
@@ -128,11 +127,11 @@ export function del(url) {
  */
 export function uploadFile(url, filePath, name = 'file', formData = {}) {
   return new Promise((resolve, reject) => {
-    const fullUrl = `${app.globalData.baseUrl}${url}`
+    const fullUrl = `${getApp().globalData.baseUrl}${url}`
     
     const headers = {}
-    if (app.globalData.token) {
-      headers['Authorization'] = `Bearer ${app.globalData.token}`
+    if (getApp().globalData.token) {
+      headers['Authorization'] = `Bearer ${getApp().globalData.token}`
     }
     
     wx.uploadFile({
@@ -159,10 +158,10 @@ export function uploadFile(url, filePath, name = 'file', formData = {}) {
  */
 export function downloadFile(url, header = {}) {
   return new Promise((resolve, reject) => {
-    const fullUrl = `${app.globalData.baseUrl}${url}`
+    const fullUrl = `${getApp().globalData.baseUrl}${url}`
     
-    if (app.globalData.token) {
-      header['Authorization'] = `Bearer ${app.globalData.token}`
+    if (getApp().globalData.token) {
+      header['Authorization'] = `Bearer ${getApp().globalData.token}`
     }
     
     wx.downloadFile({
@@ -178,7 +177,7 @@ export function downloadFile(url, header = {}) {
  * 请求拦截器配置
  */
 export const requestConfig = {
-  baseUrl: 'http://8.156.84.226/api/v1',
+  baseUrl: 'https://www.guandongfang.cn/api/v1',
   timeout: 15000,
   retryTimes: 2, // 重试次数
   retryDelay: 1000 // 重试延迟(ms)

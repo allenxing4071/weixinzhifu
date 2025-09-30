@@ -3,7 +3,7 @@ App({
   globalData: {
     userInfo: null,  // 生产环境：用户信息由登录获取
     token: null,     // 生产环境：token由登录获取
-    baseUrl: 'http://8.156.84.226/api/v1',   // 开发环境API地址（HTTP）
+    baseUrl: 'https://www.guandongfang.cn/api/v1',   // 生产环境API地址（HTTPS）
     version: '1.0.0',
     productionMode: false,   // 正式环境模式
     demoMode: true,        // 演示模式，使用真实数据

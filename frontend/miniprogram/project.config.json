@@ -29,7 +29,6 @@
     "scopeDataCheck": false,
     "uglifyFileName": false,
     "checkInvalidKey": false,
-    "checkSiteMap": false,
     "uploadWithSourceMap": true,
     "compileHotReLoad": true,
     "lazyloadPlaceholderEnable": false,
@@ -58,7 +57,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.10.1",
-  "appid": "wx9bed12ef0904d035",
+  "appid": "wx07b7fe4a9e38dac3",
   "projectname": "points-assistant",
   "isGameTourist": false,
   "condition": {

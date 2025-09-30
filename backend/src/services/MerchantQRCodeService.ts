@@ -62,7 +62,7 @@ export class MerchantQRCodeService {
    * 构建支付页面URL
    */
   private static buildPaymentUrl(merchantId: string, fixedAmount?: number): string {
-    const baseUrl = 'https://8.156.84.226/miniprogram/payment.html'
+    const baseUrl = 'https://www.guandongfang.cn/miniprogram/payment.html'
     const params = new URLSearchParams({ merchantId })
     
     // 只有当fixedAmount有值时才添加金额参数
