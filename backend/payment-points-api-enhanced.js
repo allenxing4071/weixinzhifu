@@ -1061,12 +1061,27 @@ app.get('/api/v1/admin/users/:id', async (req, res) => {
       WHERE user_id = ? AND status = 'paid'
     `, [userId]);
     
+    // 商户消费统计（按商户分组）
+    const [merchantStats] = await dbConnection.execute(`
+      SELECT 
+        merchant_id as merchantId,
+        merchant_name as merchantName,
+        COUNT(*) as orderCount,
+        COALESCE(SUM(amount), 0) as totalAmount,
+        COALESCE(SUM(points_awarded), 0) as totalPoints
+      FROM payment_orders
+      WHERE user_id = ? AND status = 'paid'
+      GROUP BY merchant_id, merchant_name
+      ORDER BY totalAmount DESC
+    `, [userId]);
+    
     res.json({ 
       success: true, 
       data: {
         ...users[0],
         orders: orders,
         pointsRecords: pointsRecords,
+        merchantStats: merchantStats,
         stats: {
           orderCount: orderStats[0].orderCount,
           totalAmount: orderStats[0].totalAmount
