@@ -965,6 +965,7 @@ app.get('/api/v1/admin/users', async (req, res) => {
         u.nickname, 
         u.avatar as avatarUrl, 
         u.phone,
+        u.status,
         COALESCE(up.available_points, 0) as availablePoints,
         COALESCE(up.total_earned, 0) as totalEarned,
         COALESCE(up.total_spent, 0) as totalSpent,
@@ -1008,6 +1009,7 @@ app.get('/api/v1/admin/users/:id', async (req, res) => {
         u.nickname, 
         u.avatar as avatarUrl, 
         u.phone,
+        u.status,
         u.created_at as createdAt,
         u.updated_at as updatedAt,
         COALESCE(up.available_points, 0) as availablePoints,
@@ -1090,6 +1092,42 @@ app.get('/api/v1/admin/users/:id', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: '获取用户详情失败', error: error.message });
+  }
+});
+
+// 修改用户状态 (锁定/解锁)
+app.put('/api/v1/admin/users/:id/status', async (req, res) => {
+  try {
+    if (!dbConnection) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+    
+    const userId = req.params.id;
+    const { status } = req.body;
+    
+    // 验证状态值
+    if (!status || !['active', 'locked'].includes(status)) {
+      return res.status(400).json({ success: false, message: '无效的状态值' });
+    }
+    
+    // 更新用户状态
+    const [result] = await dbConnection.execute(
+      'UPDATE users SET status = ? WHERE id = ?',
+      [status, userId]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: '用户不存在' });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `用户已${status === 'active' ? '解锁' : '锁定'}`,
+      data: { userId, status }
+    });
+  } catch (error) {
+    console.error('修改用户状态失败:', error);
+    res.status(500).json({ success: false, message: '修改用户状态失败', error: error.message });
   }
 });
 

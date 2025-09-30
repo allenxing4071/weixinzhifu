@@ -664,7 +664,7 @@ const UsersPage: React.FC = () => {
     try {
       const result = await apiRequest(`/admin/users/${user.id}`)
       if (result.success) {
-        setSelectedUser(result.data.user)
+        setSelectedUser(result.data)
       } else {
         message.error('获取用户详情失败')
         setSelectedUser(user) // 使用列表数据作为备用
