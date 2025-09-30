@@ -253,7 +253,8 @@ app.get('/api/v1/admin/dashboard/stats', async (req, res) => {
         system: {
           status: 'healthy',
           database: 'connected',
-          uptime: process.uptime()
+          uptime: process.uptime(),
+          lastUpdated: new Date().toISOString()
         }
       }
     });
