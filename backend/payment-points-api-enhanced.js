@@ -957,9 +957,25 @@ app.get('/api/v1/admin/users', async (req, res) => {
     const pageSize = parseInt(req.query.pageSize) || 50;
     const offset = (page - 1) * pageSize;
     
-    const [users] = await dbConnection.query(
-      'SELECT u.id, u.wechat_id as wechatId, u.nickname, u.avatar as avatarUrl, COALESCE(up.available_points, 0) as totalPoints, u.created_at as createdAt, u.updated_at as updatedAt FROM users u LEFT JOIN user_points up ON u.id = up.user_id ORDER BY u.created_at DESC LIMIT ' + pageSize + ' OFFSET ' + offset
-    );
+    const [users] = await dbConnection.query(`
+      SELECT 
+        u.id, 
+        u.wechat_id as wechatId, 
+        u.nickname, 
+        u.avatar as avatarUrl, 
+        u.phone,
+        COALESCE(up.available_points, 0) as availablePoints,
+        COALESCE(up.total_earned, 0) as totalEarned,
+        COALESCE(up.total_spent, 0) as totalSpent,
+        (SELECT COUNT(*) FROM payment_orders WHERE user_id = u.id AND status = 'paid') as orderCount,
+        (SELECT COALESCE(SUM(amount), 0) FROM payment_orders WHERE user_id = u.id AND status = 'paid') as totalAmount,
+        u.created_at as createdAt, 
+        u.updated_at as updatedAt 
+      FROM users u 
+      LEFT JOIN user_points up ON CAST(u.id AS CHAR) = CAST(up.user_id AS CHAR)
+      ORDER BY u.created_at DESC 
+      LIMIT ${pageSize} OFFSET ${offset}
+    `);
     const [total] = await dbConnection.query('SELECT COUNT(*) as count FROM users');
     
     res.json({ 
@@ -981,14 +997,81 @@ app.get('/api/v1/admin/users/:id', async (req, res) => {
     if (!dbConnection) {
       return res.status(503).json({ success: false, message: '数据库未连接' });
     }
-    const [users] = await dbConnection.execute(
-      'SELECT * FROM users WHERE id = ?',
-      [req.params.id]
-    );
+    const userId = req.params.id;
+    
+    // 获取用户基本信息和积分信息
+    const [users] = await dbConnection.execute(`
+      SELECT 
+        u.id, 
+        u.wechat_id as wechatId, 
+        u.nickname, 
+        u.avatar as avatarUrl, 
+        u.phone,
+        u.created_at as createdAt,
+        u.updated_at as updatedAt,
+        COALESCE(up.available_points, 0) as availablePoints,
+        COALESCE(up.total_earned, 0) as totalEarned,
+        COALESCE(up.total_spent, 0) as totalSpent
+      FROM users u
+      LEFT JOIN user_points up ON CAST(u.id AS CHAR) = CAST(up.user_id AS CHAR)
+      WHERE u.id = ?
+    `, [userId]);
+    
     if (users.length === 0) {
       return res.status(404).json({ success: false, message: '用户不存在' });
     }
-    res.json({ success: true, data: users[0] });
+    
+    // 获取用户的订单列表（最近10笔）
+    const [orders] = await dbConnection.execute(`
+      SELECT 
+        id,
+        merchant_name as merchantName,
+        amount,
+        points_awarded as pointsAwarded,
+        status,
+        created_at as createdAt
+      FROM payment_orders
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT 10
+    `, [userId]);
+    
+    // 获取用户的积分记录（最近10条）
+    const [pointsRecords] = await dbConnection.execute(`
+      SELECT 
+        id,
+        points_change as pointsChange,
+        record_type as recordType,
+        merchant_name as merchantName,
+        description,
+        created_at as createdAt
+      FROM points_records
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT 10
+    `, [userId]);
+    
+    // 统计数据
+    const [orderStats] = await dbConnection.execute(`
+      SELECT 
+        COUNT(*) as orderCount,
+        COALESCE(SUM(amount), 0) as totalAmount
+      FROM payment_orders
+      WHERE user_id = ? AND status = 'paid'
+    `, [userId]);
+    
+    res.json({ 
+      success: true, 
+      data: {
+        ...users[0],
+        orders: orders,
+        pointsRecords: pointsRecords,
+        stats: {
+          orderCount: orderStats[0].orderCount,
+          totalAmount: orderStats[0].totalAmount
+        }
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: '获取用户详情失败', error: error.message });
   }
