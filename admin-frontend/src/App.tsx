@@ -24,7 +24,6 @@ import {
   Badge,
   Divider,
   List,
-  Timeline,
   Tabs
 } from 'antd'
 import {
@@ -32,7 +31,6 @@ import {
   UserOutlined,
   ShopOutlined,
   GiftOutlined,
-  ShoppingCartOutlined,
   SettingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -41,18 +39,15 @@ import {
   PlusOutlined,
   FileTextOutlined,
   RiseOutlined,
-  FallOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   TrophyOutlined,
   ThunderboltOutlined,
   EyeOutlined,
-  WarningOutlined,
   TeamOutlined,
   KeyOutlined,
   LockOutlined,
-  UnlockOutlined,
   DeleteOutlined,
   EditOutlined,
   ReloadOutlined,
@@ -63,6 +58,8 @@ import {
 } from '@ant-design/icons'
 import zhCN from 'antd/locale/zh_CN'
 import './App.css'
+import { apiRequest as apiReq } from './utils/api'
+import { formatDateTime, formatAmount } from './utils/format'
 
 // 错误边界组件
 class ErrorBoundary extends React.Component<
@@ -131,35 +128,8 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 })
 
-// API基础URL - 使用相对路径，通过Nginx代理
-const API_BASE = '/api/v1'
-
-// HTTP请求函数
-async function apiRequest(url: string, options: any = {}) {
-  const token = localStorage.getItem('admin_token')
-  
-  try {
-    const response = await fetch(API_BASE + url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        ...options.headers
-      },
-      ...options
-    })
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`API请求失败: ${response.status} - ${errorText}`)
-    }
-    
-    return response.json()
-    
-  } catch (error) {
-    console.error('API请求失败:', error)
-    throw error
-  }
-}
+// 使用工具函数中的apiRequest
+const apiRequest = apiReq
 
 // 登录页面组件
 const LoginPage: React.FC = () => {
@@ -753,7 +723,7 @@ const UsersPage: React.FC = () => {
       dataIndex: 'createdAt', 
       key: 'createdAt',
       width: 150,
-      render: (time: string) => new Date(time).toLocaleString('zh-CN')
+      render: (time: string) => formatDateTime(time)
     },
     {
       title: '操作',
@@ -956,7 +926,7 @@ const UsersPage: React.FC = () => {
                       dataIndex: 'amount',
                       key: 'amount',
                       width: 80,
-                      render: (amount: number) => `¥${(amount / 100).toFixed(2)}`
+                      render: (amount: number) => formatAmount(amount)
                     },
                     {
                       title: '积分',
@@ -1071,8 +1041,7 @@ const MerchantsPage: React.FC = () => {
       
       if (result.success) {
         setMerchants(result.data || [])
-        setDataSource(result.dataSource || 'unknown')
-        // 移除成功消息提示，只在控制台记录
+        setDataSource((result as any).dataSource || 'unknown')
       } else {
         message.error(result.message || '加载商户数据失败')
       }
@@ -3130,7 +3099,7 @@ const SettingsPage: React.FC = () => {
       const result = await apiRequest(`/admin/admin-users?${params}`)
       if (result.success) {
         setAdminUsers(result.data || [])
-        setStats(result.stats || {})
+        setStats((result as any).stats || {})
         setPagination(prev => ({
           ...prev,
           total: result.pagination?.total || 0
