@@ -98,8 +98,9 @@ def random_amount():
     return random.choices(amounts, weights=weights)[0]
 
 def calculate_points(amount):
-    """计算积分"""
-    return max(int(amount * POINTS_RATE / 100), 1)
+    """计算积分：1元=1分，小数舍去"""
+    # amount是以分为单位，除以100得到元，向下取整得到积分
+    return int(amount / 100)
 
 def sql_escape(text):
     """SQL字符串转义"""

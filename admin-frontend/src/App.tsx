@@ -718,7 +718,7 @@ const UsersPage: React.FC = () => {
       render: (text: any, record: any) => (
         <div>
           <div style={{ fontWeight: 500 }}>
-            {record.totalOrders || 0} 笔订单
+            {record.orderCount || 0} 笔订单
           </div>
           <div style={{ fontSize: '12px', color: '#666' }}>
             总金额: ¥{((record.totalAmount || 0) / 100).toFixed(2)}

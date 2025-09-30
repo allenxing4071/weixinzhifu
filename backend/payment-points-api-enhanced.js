@@ -74,10 +74,11 @@ function authenticateToken(req, res, next) {
   next();
 }
 
-// 积分计算函数
+// 积分计算函数：1元=1分，小数舍去
 function calculatePoints(amount, merchantId) {
-  const basePoints = Math.floor(amount / 100 * 0.1);
-  return Math.max(basePoints, 1);
+  // amount是以分为单位，除以100得到元，向下取整得到积分
+  // 例：1234分(¥12.34) → 12积分
+  return Math.floor(amount / 100);
 }
 
 // 健康检查
