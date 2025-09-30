@@ -2323,7 +2323,20 @@ const PointsPage: React.FC = () => {
       try {
         const result = await apiRequest('/admin/points')
         if (result.success) {
-          setPoints(result.data.records || [])
+          // 后端返回的是 data 数组，不是 data.records
+          const pointsData = result.data || []
+          // 字段名转换：userId -> user_id, merchantName -> merchant_name 等
+          const formattedData = pointsData.map((item: any) => ({
+            ...item,
+            user_id: item.userId || item.user_id,
+            merchant_name: item.merchantName || item.merchant_name,
+            points_change: item.pointsChange || item.points_change,
+            record_type: item.recordType || item.record_type,
+            related_order_id: item.relatedOrderId || item.related_order_id,
+            merchant_id: item.merchantId || item.merchant_id,
+            created_at: item.createdAt || item.created_at
+          }))
+          setPoints(formattedData)
         }
       } catch (error) {
         console.error('Load points error:', error)

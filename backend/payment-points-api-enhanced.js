@@ -121,21 +121,53 @@ app.post('/api/v1/admin/auth/login', (req, res) => {
   }
 });
 
-app.get('/api/v1/admin/dashboard/stats', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      totalUsers: 1250,
-      totalMerchants: 5,
-      totalOrders: 3420,
-      totalPoints: 156780,
-      dailyStats: {
-        newUsers: 12,
-        newOrders: 45,
-        pointsAwarded: 2300
-      }
+app.get('/api/v1/admin/dashboard/stats', async (req, res) => {
+  try {
+    if (!dbConnection) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
     }
-  });
+    
+    // 查询统计数据
+    const [usersCount] = await dbConnection.query('SELECT COUNT(DISTINCT user_id) as count FROM payment_orders WHERE status = "paid"');
+    const [merchantsCount] = await dbConnection.query('SELECT COUNT(*) as count FROM merchants WHERE status = "active"');
+    const [ordersCount] = await dbConnection.query('SELECT COUNT(*) as count FROM payment_orders WHERE status = "paid"');
+    const [totalAmount] = await dbConnection.query('SELECT SUM(amount) as total FROM payment_orders WHERE status = "paid"');
+    const [totalPoints] = await dbConnection.query('SELECT SUM(available_points) as total FROM user_points');
+    
+    // 今日数据
+    const today = new Date().toISOString().split('T')[0];
+    const [todayOrders] = await dbConnection.query('SELECT COUNT(*) as count FROM payment_orders WHERE DATE(created_at) = ? AND status = "paid"', [today]);
+    const [todayAmount] = await dbConnection.query('SELECT SUM(amount) as total FROM payment_orders WHERE DATE(created_at) = ? AND status = "paid"', [today]);
+    const [todayNewUsers] = await dbConnection.query('SELECT COUNT(DISTINCT user_id) as count FROM payment_orders WHERE DATE(created_at) = ?', [today]);
+    const [todayNewMerchants] = await dbConnection.query('SELECT COUNT(*) as count FROM merchants WHERE DATE(created_at) = ?', [today]);
+    
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          totalUsers: usersCount[0].count || 0,
+          activeMerchants: merchantsCount[0].count || 0,
+          monthlyRevenue: (totalAmount[0].total || 0) / 100,
+          monthlyOrders: ordersCount[0].count || 0,
+          totalPoints: totalPoints[0].total || 0
+        },
+        today: {
+          orders: todayOrders[0].count || 0,
+          revenue: (todayAmount[0].total || 0) / 100,
+          newUsers: todayNewUsers[0].count || 0,
+          newMerchants: todayNewMerchants[0].count || 0
+        },
+        system: {
+          status: 'healthy',
+          database: 'connected',
+          uptime: process.uptime()
+        }
+      }
+    });
+  } catch (error) {
+    console.error('获取仪表盘数据失败:', error);
+    res.status(500).json({ success: false, message: '获取仪表盘数据失败', error: error.message });
+  }
 });
 
 // =====================
