@@ -696,12 +696,12 @@ const UsersPage: React.FC = () => {
     },
     { 
       title: '积分信息', 
-      dataIndex: 'points_balance', 
+      dataIndex: 'availablePoints', 
       key: 'points_info',
       width: 150,
-      render: (balance: number, record: any) => (
+      render: (availablePoints: number, record: any) => (
         <div>
-          <div style={{ fontWeight: 500, color: '#1890ff' }}>余额: {balance || 0}</div>
+          <div style={{ fontWeight: 500, color: '#1890ff' }}>余额: {availablePoints || 0}</div>
           <div style={{ fontSize: '12px', color: '#52c41a' }}>
             总获得: {record.totalEarned || 0}
           </div>
@@ -849,7 +849,7 @@ const UsersPage: React.FC = () => {
               </Col>
               <Col span={12}>
                 <Card title="积分信息" size="small" style={{ marginBottom: 16 }}>
-                  <p><strong>当前余额:</strong> <span style={{ color: '#1890ff', fontSize: '18px', fontWeight: 'bold' }}>{selectedUser.pointsBalance || 0}</span> 分</p>
+                  <p><strong>当前余额:</strong> <span style={{ color: '#1890ff', fontSize: '18px', fontWeight: 'bold' }}>{selectedUser.availablePoints || 0}</span> 分</p>
                   <p><strong>累计获得:</strong> <span style={{ color: '#52c41a' }}>{selectedUser.totalEarned || 0}</span> 分</p>
                   <p><strong>累计消费:</strong> <span style={{ color: '#ff4d4f' }}>{selectedUser.totalSpent || 0}</span> 分</p>
                   <p><strong>净收益:</strong> <span style={{ color: '#1890ff' }}>{(selectedUser.totalEarned || 0) - (selectedUser.totalSpent || 0)}</span> 分</p>
