@@ -134,11 +134,15 @@ app.get('/api/v1/admin/dashboard/stats', async (req, res) => {
     const [totalAmount] = await dbConnection.query('SELECT SUM(amount) as total FROM payment_orders WHERE status = "paid"');
     const [totalPoints] = await dbConnection.query('SELECT SUM(available_points) as total FROM user_points');
     
+    // 本月积分发放总数
+    const [monthlyPoints] = await dbConnection.query('SELECT SUM(points_awarded) as total FROM payment_orders WHERE status = "paid" AND MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())');
+    
     // 今日数据
     const today = new Date().toISOString().split('T')[0];
     const [todayOrders] = await dbConnection.query('SELECT COUNT(*) as count FROM payment_orders WHERE DATE(created_at) = ? AND status = "paid"', [today]);
     const [todayAmount] = await dbConnection.query('SELECT SUM(amount) as total FROM payment_orders WHERE DATE(created_at) = ? AND status = "paid"', [today]);
     const [todayNewUsers] = await dbConnection.query('SELECT COUNT(DISTINCT user_id) as count FROM payment_orders WHERE DATE(created_at) = ?', [today]);
+    const [todayActiveUsers] = await dbConnection.query('SELECT COUNT(DISTINCT user_id) as count FROM payment_orders WHERE DATE(created_at) = ? AND status = "paid"', [today]);
     const [todayNewMerchants] = await dbConnection.query('SELECT COUNT(*) as count FROM merchants WHERE DATE(created_at) = ?', [today]);
     
     // 最近7天交易趋势
@@ -205,12 +209,14 @@ app.get('/api/v1/admin/dashboard/stats', async (req, res) => {
           activeMerchants: merchantsCount[0].count || 0,
           monthlyRevenue: (totalAmount[0].total || 0) / 100,
           monthlyOrders: ordersCount[0].count || 0,
+          monthlyPoints: monthlyPoints[0].total || 0,
           totalPoints: totalPoints[0].total || 0
         },
         today: {
           orders: todayOrders[0].count || 0,
           revenue: (todayAmount[0].total || 0) / 100,
           newUsers: todayNewUsers[0].count || 0,
+          activeUsers: todayActiveUsers[0].count || 0,
           newMerchants: todayNewMerchants[0].count || 0
         },
         trends: {
