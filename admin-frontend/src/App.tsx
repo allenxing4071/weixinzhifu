@@ -208,6 +208,7 @@ const LoginPage: React.FC = () => {
 
 // 仪表板页面 - 重新设计核心数据展示
 const DashboardPage: React.FC = () => {
+  const navigate = useNavigate()
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -369,7 +370,16 @@ const DashboardPage: React.FC = () => {
       {/* 第三行：趋势分析和商户分布 */}
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={12}>
-          <Card title="最近7天交易趋势" extra={<EyeOutlined />}>
+          <Card 
+            title="最近7天交易趋势" 
+            extra={
+              <EyeOutlined 
+                style={{ cursor: 'pointer', fontSize: '16px' }} 
+                onClick={() => navigate('/orders')}
+                title="查看订单详情"
+              />
+            }
+          >
             <div style={{ height: 200 }}>
               {trends?.weekly && trends.weekly.length > 0 ? (
                 <div>
@@ -404,7 +414,16 @@ const DashboardPage: React.FC = () => {
           </Card>
         </Col>
         <Col span={12}>
-          <Card title="商户类别分布" extra={<TrophyOutlined />}>
+          <Card 
+            title="商户类别分布" 
+            extra={
+              <TrophyOutlined 
+                style={{ cursor: 'pointer', fontSize: '16px' }} 
+                onClick={() => navigate('/merchants')}
+                title="查看商户详情"
+              />
+            }
+          >
             <div style={{ height: 200 }}>
               {trends?.merchantCategories && trends.merchantCategories.length > 0 ? (
                 <div>
