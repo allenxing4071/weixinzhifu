@@ -2533,8 +2533,8 @@ const PointsPage: React.FC = () => {
         }))
 
         // 设置统计数据（从API或计算当前页）
-        if (result.stats) {
-          setStats(result.stats)
+        if ((result as any).stats) {
+          setStats((result as any).stats)
         } else {
           // 如果API没有返回stats，计算当前页的统计
           const data = result.data || []
