@@ -56,7 +56,9 @@ import {
   CrownOutlined,
   SafetyOutlined,
   QuestionCircleOutlined,
-  SearchOutlined
+  SearchOutlined,
+  ShoppingOutlined,
+  ToolOutlined
 } from '@ant-design/icons'
 import zhCN from 'antd/locale/zh_CN'
 import './App.css'
@@ -2492,29 +2494,43 @@ const PointsPage: React.FC = () => {
     total: 0
   })
 
+  // 搜索和筛选状态
+  const [searchText, setSearchText] = useState('')
+  const [recordTypeFilter, setRecordTypeFilter] = useState('all')
+  const [merchantFilter, setMerchantFilter] = useState('all')
+
   useEffect(() => {
-    const loadPoints = async () => {
-      try {
-        setLoading(true)
-        const result = await apiRequest(`/admin/points?page=${pagination.page}&pageSize=${pagination.pageSize}`)
-        if (result.success) {
-          setPoints(result.data || [])
-          setPagination(prev => ({
-            ...prev,
-            total: result.pagination?.total || 0
-          }))
-        } else {
-          message.error(result.message || '加载积分数据失败')
-        }
-      } catch (error) {
-        console.error('Load points error:', error)
-        message.error('加载积分数据失败')
-      } finally {
-        setLoading(false)
-      }
-    }
     loadPoints()
-  }, [pagination.page, pagination.pageSize])
+  }, [pagination.page, pagination.pageSize, searchText, recordTypeFilter, merchantFilter])
+
+  const loadPoints = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        pageSize: pagination.pageSize.toString(),
+        ...(searchText && { search: searchText }),
+        ...(recordTypeFilter !== 'all' && { recordType: recordTypeFilter }),
+        ...(merchantFilter !== 'all' && { merchantId: merchantFilter })
+      })
+
+      const result = await apiRequest(`/admin/points?${params}`)
+      if (result.success) {
+        setPoints(result.data || [])
+        setPagination(prev => ({
+          ...prev,
+          total: result.pagination?.total || 0
+        }))
+      } else {
+        message.error(result.message || '加载积分数据失败')
+      }
+    } catch (error) {
+      console.error('Load points error:', error)
+      message.error('加载积分数据失败')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleTableChange = (paginationConfig: any) => {
     setPagination({
@@ -2614,6 +2630,112 @@ const PointsPage: React.FC = () => {
       <div style={{ marginBottom: 16, color: '#666' }}>
         查看所有用户的积分获得记录，包含消费商户和详细信息
       </div>
+
+      {/* 统计卡片 */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="总积分记录"
+              value={pagination.total}
+              prefix={<FileTextOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="支付奖励"
+              value={points.filter((p: any) =>
+                (p.recordType === 'payment_reward' || p.record_type === 'payment_reward')
+              ).length}
+              prefix={<GiftOutlined />}
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="商城消费"
+              value={points.filter((p: any) =>
+                (p.recordType === 'mall_consumption' || p.record_type === 'mall_consumption')
+              ).length}
+              prefix={<ShoppingOutlined />}
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="管理员调整"
+              value={points.filter((p: any) =>
+                (p.recordType === 'admin_adjust' || p.record_type === 'admin_adjust')
+              ).length}
+              prefix={<ToolOutlined />}
+              valueStyle={{ color: '#722ed1' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 搜索和筛选区域 */}
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ flex: '1 1 300px' }}>
+            <Input.Search
+              placeholder="搜索用户昵称、手机号、用户ID、商户名称"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onSearch={(value) => setSearchText(value)}
+              allowClear
+              style={{ width: '100%' }}
+              prefix={<SearchOutlined />}
+            />
+          </div>
+
+          <div style={{ flex: '0 0 150px' }}>
+            <Select
+              value={recordTypeFilter}
+              onChange={setRecordTypeFilter}
+              style={{ width: '100%' }}
+              options={[
+                { label: '全部类型', value: 'all' },
+                { label: '💰 支付奖励', value: 'payment_reward' },
+                { label: '🛍️ 商城消费', value: 'mall_consumption' },
+                { label: '⚙️ 管理员调整', value: 'admin_adjust' }
+              ]}
+            />
+          </div>
+
+          <div style={{ flex: '0 0 150px' }}>
+            <Select
+              value={merchantFilter}
+              onChange={setMerchantFilter}
+              style={{ width: '100%' }}
+              placeholder="选择商户"
+              options={[
+                { label: '全部商户', value: 'all' }
+                // 商户列表会在后续动态加载
+              ]}
+            />
+          </div>
+
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => {
+              setSearchText('')
+              setRecordTypeFilter('all')
+              setMerchantFilter('all')
+              setPagination(prev => ({ ...prev, page: 1 }))
+            }}
+          >
+            重置
+          </Button>
+        </div>
+      </Card>
 
       <Table
         columns={columns}
