@@ -30,9 +30,20 @@ export function formatDate(dateStr: string | null | undefined): string {
   }
 }
 
-// 格式化金额（元）
-export function formatAmount(amount: number | null | undefined): string {
+// 格式化金额
+// unit: 'cents' = 分（默认），'yuan' = 元
+export function formatAmount(
+  amount: number | null | undefined,
+  unit: 'cents' | 'yuan' = 'cents'
+): string {
   if (amount === null || amount === undefined) return '¥0.00'
+
+  // 如果已经是元，直接格式化
+  if (unit === 'yuan') {
+    return `¥${Number(amount).toFixed(2)}`
+  }
+
+  // 如果是分，转换为元后格式化
   return `¥${(amount / 100).toFixed(2)}`
 }
 
@@ -94,4 +105,38 @@ export function formatAdminStatus(status: string): { text: string; color: string
     'locked': { text: '锁定', color: 'error' }
   }
   return statusMap[status] || { text: status, color: 'default' }
+}
+
+// 数据库字段转驼峰命名
+// 将 snake_case 转换为 camelCase
+export function toCamelCase(obj: any): any {
+  if (!obj) return obj
+  if (Array.isArray(obj)) return obj.map(toCamelCase)
+  if (typeof obj !== 'object' || obj instanceof Date) return obj
+
+  const result: any = {}
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+      result[camelKey] = obj[key]
+    }
+  }
+  return result
+}
+
+// 驼峰命名转数据库字段
+// 将 camelCase 转换为 snake_case
+export function toSnakeCase(obj: any): any {
+  if (!obj) return obj
+  if (Array.isArray(obj)) return obj.map(toSnakeCase)
+  if (typeof obj !== 'object' || obj instanceof Date) return obj
+
+  const result: any = {}
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
+      result[snakeKey] = obj[key]
+    }
+  }
+  return result
 }

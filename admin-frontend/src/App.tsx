@@ -2390,47 +2390,82 @@ const MerchantsPage: React.FC = () => {
             <Row gutter={16}>
               <Col span={12}>
                 <Card title="基本信息" size="small" style={{ marginBottom: 16 }}>
-                  <p><strong>商户编号:</strong> {merchantDetail.merchantNo || '未设置'}</p>
-                  <p><strong>商户类型:</strong> {merchantDetail.merchantType === 'INDIVIDUAL' ? '个体户' : '企业'}</p>
-                  <p><strong>营业执照:</strong> {merchantDetail.businessLicense || '未设置'}</p>
-                  <p><strong>经营类目:</strong> {merchantDetail.businessCategory || '未设置'}</p>
-                  <p><strong>状态:</strong> 
+                  <p><strong>商户编号:</strong> {merchantDetail.merchantNo || <Tag color="orange">待生成</Tag>}</p>
+                  <p><strong>商户类型:</strong> {
+                    merchantDetail.merchantType === 'INDIVIDUAL' ? (
+                      <Tag color="blue">个体户</Tag>
+                    ) : merchantDetail.merchantType === 'ENTERPRISE' ? (
+                      <Tag color="purple">企业</Tag>
+                    ) : (
+                      <Tag color="default">未设置</Tag>
+                    )
+                  }</p>
+                  <p><strong>营业执照:</strong> {merchantDetail.businessLicense || <span style={{ color: '#999' }}>未填写</span>}</p>
+                  <p><strong>经营类目:</strong> {merchantDetail.businessCategory || <span style={{ color: '#999' }}>未填写</span>}</p>
+                  <p><strong>状态:</strong>
                     <Tag color={merchantDetail.status === 'active' ? 'green' : merchantDetail.status === 'pending' ? 'orange' : 'red'}>
-                      {merchantDetail.status === 'active' ? '已完成' : 
-                       merchantDetail.status === 'pending' ? '待审核' : 
-                       merchantDetail.status === 'inactive' ? '已禁用' : '已驳回'}
+                      {merchantDetail.status === 'active' ? '✅ 已启用' :
+                       merchantDetail.status === 'pending' ? '⏳ 待审核' :
+                       merchantDetail.status === 'inactive' ? '🚫 已禁用' : '❌ 已驳回'}
                     </Tag>
                   </p>
                 </Card>
               </Col>
               <Col span={12}>
                 <Card title="联系信息" size="small" style={{ marginBottom: 16 }}>
-                  <p><strong>联系人:</strong> {merchantDetail.contactPerson || '未设置'}</p>
-                  <p><strong>联系电话:</strong> {merchantDetail.contactPhone || '未设置'}</p>
-                  <p><strong>联系邮箱:</strong> {merchantDetail.contactEmail || '未设置'}</p>
-                  <p><strong>法定代表人:</strong> {merchantDetail.legalPerson || '未设置'}</p>
+                  <p><strong>联系人:</strong> {merchantDetail.contactPerson || <span style={{ color: '#999' }}>未填写</span>}</p>
+                  <p><strong>联系电话:</strong> {merchantDetail.contactPhone || <span style={{ color: '#999' }}>未填写</span>}</p>
+                  <p><strong>联系邮箱:</strong> {merchantDetail.contactEmail || <span style={{ color: '#999' }}>未填写</span>}</p>
+                  <p><strong>法定代表人:</strong> {merchantDetail.legalPerson || <span style={{ color: '#999' }}>未填写</span>}</p>
                 </Card>
               </Col>
             </Row>
-            
+
             <Row gutter={16}>
               <Col span={12}>
                 <Card title="微信支付信息" size="small" style={{ marginBottom: 16 }}>
-                  <p><strong>申请单号:</strong> {merchantDetail.applymentId || '未设置'}</p>
-                  <p><strong>特约商户号:</strong> {merchantDetail.subMchId || '未设置'}</p>
-                  <p><strong>二维码状态:</strong> 
-                    <Tag color={merchantDetail.qrCode ? 'green' : 'orange'}>
-                      {merchantDetail.qrCode ? '已生成' : '未生成'}
-                    </Tag>
-                  </p>
+                  <p><strong>申请单号:</strong> {merchantDetail.applymentId || <Tag color="orange">待申请</Tag>}</p>
+                  <p><strong>特约商户号:</strong> {merchantDetail.subMchId || <Tag color="orange">待生成</Tag>}</p>
+                  <p><strong>二维码状态:</strong> {
+                    merchantDetail.qrCode ? (
+                      <Tag color="green" icon={<CheckCircleOutlined />}>已生成</Tag>
+                    ) : (
+                      <Tag color="orange" icon={<ClockCircleOutlined />}>未生成</Tag>
+                    )
+                  }</p>
                 </Card>
               </Col>
               <Col span={12}>
                 <Card title="业务数据" size="small" style={{ marginBottom: 16 }}>
-                  <p><strong>总收款金额:</strong> ¥{merchantDetail.totalAmount || 0}</p>
-                  <p><strong>总订单数:</strong> {merchantDetail.totalOrders || 0}</p>
-                  <p><strong>创建时间:</strong> {merchantDetail.createdAt ? new Date(merchantDetail.createdAt).toLocaleString() : '未知'}</p>
-                  <p><strong>更新时间:</strong> {merchantDetail.updatedAt ? new Date(merchantDetail.updatedAt).toLocaleString() : '未知'}</p>
+                  {merchantDetail.totalOrders > 0 || (merchantDetail.stats && merchantDetail.stats.paidOrders > 0) ? (
+                    <>
+                      <p><strong>总收款金额:</strong> <span style={{ color: '#52c41a', fontSize: '16px', fontWeight: 'bold' }}>
+                        ¥{(merchantDetail.totalAmount || 0).toFixed(2)}
+                      </span></p>
+                      <p><strong>总订单数:</strong> <span style={{ color: '#1890ff', fontWeight: 500 }}>
+                        {merchantDetail.totalOrders || 0} 笔
+                      </span></p>
+                      {merchantDetail.stats && (
+                        <p style={{ fontSize: '12px', color: '#666' }}>
+                          <ClockCircleOutlined /> 待处理: {merchantDetail.stats.pendingOrders || 0} 笔 |
+                          已完成: {merchantDetail.stats.paidOrders || 0} 笔
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#999' }}>
+                      <FileTextOutlined style={{ fontSize: 32, marginBottom: 8, display: 'block' }} />
+                      <p style={{ margin: 0 }}>暂无交易记录</p>
+                      <p style={{ fontSize: '12px', margin: 0 }}>该商户还未产生任何订单</p>
+                    </div>
+                  )}
+                  <Divider style={{ margin: '12px 0' }} />
+                  <p style={{ fontSize: '12px', color: '#666' }}>
+                    <strong>创建时间:</strong> {merchantDetail.createdAt ? formatDateTime(merchantDetail.createdAt) : '未知'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666' }}>
+                    <strong>更新时间:</strong> {merchantDetail.updatedAt ? formatDateTime(merchantDetail.updatedAt) : '未知'}
+                  </p>
                 </Card>
               </Col>
             </Row>

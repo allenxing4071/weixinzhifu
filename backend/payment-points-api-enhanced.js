@@ -923,13 +923,62 @@ app.get('/api/v1/admin/merchants/:id', async (req, res) => {
       LIMIT 10
     `, [merchantId]);
     
-    res.json({ 
-      success: true, 
+    // 修复字段映射：将数据库下划线命名转换为前端驼峰命名
+    const merchant = merchants[0];
+
+    res.json({
+      success: true,
       data: {
-        ...merchants[0],
-        stats: stats[0],
-        recentOrders: recentOrders,
-        topUsers: topUsers
+        // 基本信息（驼峰命名）
+        id: merchant.id,
+        merchantName: merchant.merchant_name,
+        merchantNo: merchant.merchant_no,
+        merchantType: merchant.merchant_type,
+        businessLicense: merchant.business_license,
+        businessCategory: merchant.business_category,
+        contactPerson: merchant.contact_person,
+        contactPhone: merchant.contact_phone,
+        contactEmail: merchant.contact_email,
+        legalPerson: merchant.legal_person,
+        applymentId: merchant.applyment_id,
+        subMchId: merchant.sub_mch_id,
+        qrCode: merchant.qr_code,
+        status: merchant.status,
+        totalAmount: merchant.total_amount || 0,
+        totalOrders: merchant.total_orders || 0,
+        createdAt: merchant.created_at,
+        updatedAt: merchant.updated_at,
+
+        // 统计数据（从订单表聚合）
+        stats: {
+          userCount: parseInt(stats[0].userCount) || 0,
+          paidOrders: parseInt(stats[0].paidOrders) || 0,
+          pendingOrders: parseInt(stats[0].pendingOrders) || 0,
+          cancelledOrders: parseInt(stats[0].cancelledOrders) || 0,
+          totalAmount: parseFloat(stats[0].totalAmount) / 100 || 0, // 转换为元
+          totalPoints: parseInt(stats[0].totalPoints) || 0
+        },
+
+        // 最近订单（转换为驼峰命名并格式化）
+        recentOrders: recentOrders.map(order => ({
+          id: order.id,
+          userId: order.userId,
+          userNickname: order.userNickname || '未知用户',
+          amount: parseFloat(order.amount) / 100, // 转换为元
+          pointsAwarded: parseInt(order.pointsAwarded) || 0,
+          status: order.status,
+          createdAt: order.createdAt,
+          paidAt: order.paidAt
+        })),
+
+        // TOP用户（转换为驼峰命名并格式化）
+        topUsers: topUsers.map(user => ({
+          userId: user.userId,
+          nickname: user.nickname || '未知用户',
+          orderCount: parseInt(user.orderCount) || 0,
+          totalAmount: parseFloat(user.totalAmount) / 100, // 转换为元
+          totalPoints: parseInt(user.totalPoints) || 0
+        }))
       }
     });
   } catch (error) {

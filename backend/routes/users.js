@@ -1,0 +1,255 @@
+// 用户管理路由模块
+const express = require('express');
+const router = express.Router();
+const { validatePagination, validateUserId, validateAdjustPoints } = require('../middlewares/validation');
+const { requireAdmin } = require('../utils/jwt');
+const { logOperation } = require('../utils/logger');
+
+// 所有用户管理接口需要管理员权限
+router.use(requireAdmin);
+
+// ==================== 获取用户列表 ====================
+router.get('/', validatePagination, async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 50;
+    const search = req.query.search;
+    const offset = (page - 1) * pageSize;
+
+    let whereClause = '';
+    let params = [];
+
+    if (search) {
+      whereClause = 'WHERE u.nickname LIKE ? OR u.phone LIKE ?';
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern);
+    }
+
+    // 优化：使用LEFT JOIN一次性获取用户和积分信息
+    const [users] = await pool.query(`
+      SELECT
+        u.id,
+        u.wechat_id as wechatId,
+        u.nickname,
+        u.avatar,
+        u.phone,
+        u.created_at as createdAt,
+        u.updated_at as updatedAt,
+        COALESCE(up.available_points, 0) as availablePoints,
+        COALESCE(up.total_earned, 0) as totalEarned,
+        COALESCE(up.total_spent, 0) as totalSpent,
+        COUNT(DISTINCT CASE WHEN po.status = 'paid' THEN po.id END) as orderCount,
+        COALESCE(SUM(CASE WHEN po.status = 'paid' THEN po.amount ELSE 0 END), 0) as totalAmount
+      FROM users u
+      LEFT JOIN user_points up ON u.id = up.user_id
+      LEFT JOIN payment_orders po ON u.id = po.user_id
+      ${whereClause}
+      GROUP BY u.id, u.wechat_id, u.nickname, u.avatar, u.phone, u.created_at, u.updated_at,
+               up.available_points, up.total_earned, up.total_spent
+      ORDER BY u.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [...params, pageSize, offset]);
+
+    const [countResult] = await pool.query(`
+      SELECT COUNT(*) as total FROM users u ${whereClause}
+    `, params);
+
+    res.json({
+      success: true,
+      data: users.map(user => ({
+        ...user,
+        totalAmount: user.totalAmount / 100 // 转换为元
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total: countResult[0].total
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ==================== 获取用户详情 ====================
+router.get('/:id', validateUserId, async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const { id } = req.params;
+
+    // 获取用户基本信息和积分信息
+    const [users] = await pool.execute(`
+      SELECT
+        u.id,
+        u.wechat_id as wechatId,
+        u.nickname,
+        u.avatar,
+        u.phone,
+        u.created_at as createdAt,
+        u.updated_at as updatedAt,
+        COALESCE(up.available_points, 0) as availablePoints,
+        COALESCE(up.total_earned, 0) as totalEarned,
+        COALESCE(up.total_spent, 0) as totalSpent
+      FROM users u
+      LEFT JOIN user_points up ON u.id = up.user_id
+      WHERE u.id = ?
+    `, [id]);
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    const user = users[0];
+
+    // 获取消费统计
+    const [orderStats] = await pool.execute(`
+      SELECT
+        COUNT(*) as orderCount,
+        COALESCE(SUM(amount), 0) as totalAmount,
+        COALESCE(SUM(points_awarded), 0) as totalPoints
+      FROM payment_orders
+      WHERE user_id = ? AND status = 'paid'
+    `, [id]);
+
+    // 获取商户消费统计（最多5个）
+    const [merchantStats] = await pool.execute(`
+      SELECT
+        merchant_id as merchantId,
+        merchant_name as merchantName,
+        merchant_category as merchantCategory,
+        COUNT(*) as orderCount,
+        SUM(amount) as totalAmount,
+        SUM(points_awarded) as totalPoints
+      FROM payment_orders
+      WHERE user_id = ? AND status = 'paid'
+      GROUP BY merchant_id, merchant_name, merchant_category
+      ORDER BY totalAmount DESC
+      LIMIT 5
+    `, [id]);
+
+    res.json({
+      success: true,
+      data: {
+        userInfo: user,
+        orderStats: {
+          ...orderStats[0],
+          totalAmount: orderStats[0].totalAmount / 100
+        },
+        merchantStats: merchantStats.map(stat => ({
+          ...stat,
+          totalAmount: stat.totalAmount / 100
+        }))
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ==================== 调整用户积分 ====================
+router.post('/:id/adjust-points', validateAdjustPoints, async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const { id } = req.params;
+    const { points, reason } = req.body;
+
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      // 检查用户是否存在
+      const [users] = await connection.execute(
+        'SELECT id FROM users WHERE id = ?',
+        [id]
+      );
+
+      if (users.length === 0) {
+        throw new Error('用户不存在');
+      }
+
+      // 如果是扣减积分，检查余额是否足够
+      if (points < 0) {
+        const [pointsData] = await connection.execute(
+          'SELECT available_points FROM user_points WHERE user_id = ?',
+          [id]
+        );
+
+        const currentPoints = pointsData.length > 0 ? pointsData[0].available_points : 0;
+        if (currentPoints + points < 0) {
+          throw new Error('积分余额不足');
+        }
+      }
+
+      // 创建积分记录
+      const recordId = `points_admin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      await connection.execute(`
+        INSERT INTO points_records
+        (id, user_id, points_change, record_type, description)
+        VALUES (?, ?, ?, 'admin_adjust', ?)
+      `, [recordId, id, points, reason]);
+
+      // 更新用户积分
+      if (points > 0) {
+        await connection.execute(`
+          INSERT INTO user_points (user_id, available_points, total_earned, total_spent)
+          VALUES (?, ?, ?, 0)
+          ON DUPLICATE KEY UPDATE
+          available_points = available_points + ?,
+          total_earned = total_earned + ?
+        `, [id, points, points, points, points]);
+      } else {
+        await connection.execute(`
+          INSERT INTO user_points (user_id, available_points, total_earned, total_spent)
+          VALUES (?, 0, 0, ?)
+          ON DUPLICATE KEY UPDATE
+          available_points = available_points + ?,
+          total_spent = total_spent + ?
+        `, [id, Math.abs(points), points, Math.abs(points)]);
+      }
+
+      await connection.commit();
+
+      logOperation('Adjust User Points', req.user.id, {
+        userId: id,
+        points,
+        reason
+      });
+
+      res.json({
+        success: true,
+        message: '积分调整成功',
+        data: {
+          userId: id,
+          pointsChange: points,
+          reason
+        }
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+module.exports = router;
