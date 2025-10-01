@@ -3751,29 +3751,33 @@ const SettingsPage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 250,
       render: (text: any, record: any) => (
-        <div>
-          <Button 
-            size="small" 
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <Button
+            size="small"
             type="primary"
             icon={<EditOutlined />}
-            onClick={() => handleEditUser(record)}
-            style={{ marginRight: 4 }}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleEditUser(record)
+            }}
           >
             编辑
           </Button>
-          <Button 
-            size="small" 
+          <Button
+            size="small"
             icon={<KeyOutlined />}
-            onClick={() => handleResetPassword(record)}
-            style={{ marginRight: 4 }}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleResetPassword(record)
+            }}
           >
             重置密码
           </Button>
-          {record.role !== 'super_admin' && (
-            <Button 
-              size="small" 
+          {record.roleCode !== 'super_admin' && (
+            <Button
+              size="small"
               danger
               icon={<DeleteOutlined />}
               onClick={() => handleDeleteUser(record)}

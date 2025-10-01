@@ -118,6 +118,7 @@ const merchantsRoutes = require('./routes/merchants');
 const ordersRoutes = require('./routes/orders');
 const pointsRoutes = require('./routes/points');
 const paymentsRoutes = require('./routes/payments');
+const adminUsersRoutes = require('./routes/admin-users');
 
 // 挂载认证路由（无需Token）
 app.use('/api/v1/auth', authRoutes);
@@ -127,6 +128,7 @@ app.use('/api/v1/dashboard', authenticateToken, dashboardRoutes);
 app.use('/api/v1/admin/users', authenticateToken, usersRoutes);
 app.use('/api/v1/admin/merchants', authenticateToken, merchantsRoutes);
 app.use('/api/v1/admin/orders', authenticateToken, ordersRoutes);
+app.use('/api/v1/admin/admin-users', authenticateToken, adminUsersRoutes);
 app.use('/api/v1/points', authenticateToken, pointsRoutes);
 app.use('/api/v1/payments', authenticateToken, paymentsRoutes);
 

@@ -1495,42 +1495,57 @@ app.get('/api/v1/admin/admin-users', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pageSize) || 10;
+    const offset = (page - 1) * pageSize;
 
-    // 模拟数据
-    const adminUsers = [
-      {
-        id: 'admin-1',
-        username: 'admin',
-        realName: '超级管理员',
-        email: 'admin@example.com',
-        phone: '13800138000',
-        status: 'active',
-        roleCode: 'super_admin',
-        roleName: '超级管理员',
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString()
-      }
-    ];
+    // 从数据库获取管理员列表
+    const [adminUsers] = await db.query(`
+      SELECT
+        au.id,
+        au.username,
+        au.real_name as realName,
+        au.email,
+        au.phone,
+        au.status,
+        ar.role_code as roleCode,
+        ar.role_name as roleName,
+        ar.permissions,
+        au.last_login_at as lastLoginAt,
+        au.created_at as createdAt
+      FROM admin_users au
+      LEFT JOIN admin_roles ar ON au.role_id = ar.id
+      ORDER BY au.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [pageSize, offset]);
+
+    // 获取总数
+    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM admin_users');
 
     // 统计数据
-    const stats = {
-      total: adminUsers.length,
-      active: adminUsers.filter(u => u.status === 'active').length,
-      superAdmins: adminUsers.filter(u => u.roleCode === 'super_admin').length,
-      admins: adminUsers.filter(u => u.roleCode === 'admin').length
-    };
+    const [[stats]] = await db.query(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN role_id = 'role_super_admin' THEN 1 ELSE 0 END) as superAdmins,
+        SUM(CASE WHEN role_id LIKE '%admin%' AND role_id != 'role_super_admin' THEN 1 ELSE 0 END) as admins
+      FROM admin_users
+    `);
 
     res.json({
       success: true,
-      data: adminUsers,
+      data: adminUsers.map(u => ({
+        ...u,
+        permissions: u.permissions ? JSON.parse(u.permissions) : {},
+        role: u.roleCode
+      })),
       stats: stats,
       pagination: {
         page,
         pageSize,
-        total: adminUsers.length
+        total: total
       }
     });
   } catch (error) {
+    console.error('获取管理员列表失败:', error);
     res.status(500).json({ success: false, message: '获取管理员列表失败', error: error.message });
   }
 });
@@ -1538,27 +1553,69 @@ app.get('/api/v1/admin/admin-users', async (req, res) => {
 // 创建管理员
 app.post('/api/v1/admin/admin-users', async (req, res) => {
   try {
-    const { username, password, realName, email, phone, role } = req.body;
+    const { username, password, realName, email, phone, role, permissions } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ success: false, message: '用户名和密码为必填项' });
     }
 
-    // 模拟创建成功
-    const newUser = {
-      id: `admin-${Date.now()}`,
-      username,
-      realName: realName || username,
-      email,
-      phone,
-      status: 'active',
-      roleCode: role || 'admin',
-      roleName: role === 'super_admin' ? '超级管理员' : '管理员',
-      createdAt: new Date().toISOString()
-    };
+    // 检查用户名是否已存在
+    const [[existingUser]] = await db.query('SELECT id FROM admin_users WHERE username = ?', [username]);
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: '用户名已存在' });
+    }
+
+    // 生成密码哈希
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    // 确定角色ID
+    let roleId = 'role_operation_admin'; // 默认角色
+    if (role === 'super_admin') {
+      roleId = 'role_super_admin';
+    } else if (role === 'admin') {
+      roleId = 'role_operation_admin';
+    } else if (role === 'readonly') {
+      roleId = 'role_merchant_admin'; // 使用商户管理员角色作为只读角色
+    }
+
+    const userId = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // 插入新管理员
+    await db.query(`
+      INSERT INTO admin_users (id, username, password_hash, real_name, email, phone, role_id, status, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'active', 'system')
+    `, [userId, username, passwordHash, realName || username, email, phone, roleId]);
+
+    // 如果有自定义权限，更新角色权限
+    if (permissions) {
+      await db.query(`
+        UPDATE admin_roles
+        SET permissions = ?
+        WHERE id = ?
+      `, [JSON.stringify(permissions), roleId]);
+    }
+
+    // 获取创建的用户信息
+    const [[newUser]] = await db.query(`
+      SELECT
+        au.id,
+        au.username,
+        au.real_name as realName,
+        au.email,
+        au.phone,
+        au.status,
+        ar.role_code as roleCode,
+        ar.role_name as roleName,
+        au.created_at as createdAt
+      FROM admin_users au
+      LEFT JOIN admin_roles ar ON au.role_id = ar.id
+      WHERE au.id = ?
+    `, [userId]);
 
     res.json({ success: true, data: newUser, message: '管理员创建成功' });
   } catch (error) {
+    console.error('创建管理员失败:', error);
     res.status(500).json({ success: false, message: '创建管理员失败', error: error.message });
   }
 });
@@ -1567,22 +1624,71 @@ app.post('/api/v1/admin/admin-users', async (req, res) => {
 app.put('/api/v1/admin/admin-users/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { realName, email, phone, role, status } = req.body;
+    const { realName, email, phone, role, status, permissions } = req.body;
 
-    // 模拟更新成功
-    const updatedUser = {
-      id,
-      realName,
-      email,
-      phone,
-      status,
-      roleCode: role,
-      roleName: role === 'super_admin' ? '超级管理员' : '管理员',
-      updatedAt: new Date().toISOString()
-    };
+    // 检查用户是否存在
+    const [[existingUser]] = await db.query('SELECT id, role_id FROM admin_users WHERE id = ?', [id]);
+    if (!existingUser) {
+      return res.status(404).json({ success: false, message: '管理员不存在' });
+    }
 
-    res.json({ success: true, data: updatedUser, message: '管理员信息更新成功' });
+    // 确定新的角色ID
+    let roleId = existingUser.role_id;
+    if (role) {
+      if (role === 'super_admin') {
+        roleId = 'role_super_admin';
+      } else if (role === 'admin') {
+        roleId = 'role_operation_admin';
+      } else if (role === 'readonly') {
+        roleId = 'role_merchant_admin';
+      }
+    }
+
+    // 更新管理员信息
+    await db.query(`
+      UPDATE admin_users
+      SET real_name = ?, email = ?, phone = ?, role_id = ?, status = ?
+      WHERE id = ?
+    `, [realName, email, phone, roleId, status, id]);
+
+    // 如果提供了权限配置，更新对应角色的权限
+    if (permissions) {
+      await db.query(`
+        UPDATE admin_roles
+        SET permissions = ?
+        WHERE id = ?
+      `, [JSON.stringify(permissions), roleId]);
+    }
+
+    // 获取更新后的用户信息
+    const [[updatedUser]] = await db.query(`
+      SELECT
+        au.id,
+        au.username,
+        au.real_name as realName,
+        au.email,
+        au.phone,
+        au.status,
+        ar.role_code as roleCode,
+        ar.role_name as roleName,
+        ar.permissions,
+        au.updated_at as updatedAt
+      FROM admin_users au
+      LEFT JOIN admin_roles ar ON au.role_id = ar.id
+      WHERE au.id = ?
+    `, [id]);
+
+    res.json({
+      success: true,
+      data: {
+        ...updatedUser,
+        permissions: updatedUser.permissions ? JSON.parse(updatedUser.permissions) : {},
+        role: updatedUser.roleCode
+      },
+      message: '管理员信息更新成功'
+    });
   } catch (error) {
+    console.error('更新管理员失败:', error);
     res.status(500).json({ success: false, message: '更新管理员失败', error: error.message });
   }
 });
@@ -1592,13 +1698,24 @@ app.delete('/api/v1/admin/admin-users/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
+    // 检查用户是否存在
+    const [[user]] = await db.query('SELECT id, role_id FROM admin_users WHERE id = ?', [id]);
+    if (!user) {
+      return res.status(404).json({ success: false, message: '管理员不存在' });
+    }
+
     // 不允许删除超级管理员
-    if (id === 'admin-1') {
+    if (user.role_id === 'role_super_admin') {
       return res.status(403).json({ success: false, message: '不能删除超级管理员' });
     }
 
+    // 删除管理员（软删除或硬删除）
+    // 这里使用硬删除，如果需要软删除可以改为更新status
+    await db.query('DELETE FROM admin_users WHERE id = ?', [id]);
+
     res.json({ success: true, message: '管理员删除成功' });
   } catch (error) {
+    console.error('删除管理员失败:', error);
     res.status(500).json({ success: false, message: '删除管理员失败', error: error.message });
   }
 });
@@ -1613,8 +1730,22 @@ app.post('/api/v1/admin/admin-users/:id/reset-password', async (req, res) => {
       return res.status(400).json({ success: false, message: '新密码不能为空' });
     }
 
+    // 检查用户是否存在
+    const [[user]] = await db.query('SELECT id FROM admin_users WHERE id = ?', [id]);
+    if (!user) {
+      return res.status(404).json({ success: false, message: '管理员不存在' });
+    }
+
+    // 生成新的密码哈希
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    // 更新密码
+    await db.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
+
     res.json({ success: true, message: '密码重置成功' });
   } catch (error) {
+    console.error('重置密码失败:', error);
     res.status(500).json({ success: false, message: '重置密码失败', error: error.message });
   }
 });
