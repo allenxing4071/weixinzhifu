@@ -2482,10 +2482,15 @@ const MerchantsPage: React.FC = () => {
 
 // 积分管理页面
 const PointsPage: React.FC = () => {
-  const [points, setPoints] = useState([])
+  const [points, setPoints] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<any>({
+    total: 0,
+    paymentReward: 0,
+    mallConsumption: 0,
+    adminAdjust: 0
+  })
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 20,
@@ -2497,8 +2502,15 @@ const PointsPage: React.FC = () => {
   const [recordTypeFilter, setRecordTypeFilter] = useState('all')
   const [merchantFilter, setMerchantFilter] = useState('all')
 
+  // 当筛选条件改变时，重置到第一页
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [searchText, recordTypeFilter, merchantFilter])
+
+  // 加载积分数据
   useEffect(() => {
     loadPoints()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.pageSize, searchText, recordTypeFilter, merchantFilter])
 
   const loadPoints = async () => {
@@ -2519,6 +2531,26 @@ const PointsPage: React.FC = () => {
           ...prev,
           total: result.pagination?.total || 0
         }))
+
+        // 设置统计数据（从API或计算当前页）
+        if (result.stats) {
+          setStats(result.stats)
+        } else {
+          // 如果API没有返回stats，计算当前页的统计
+          const data = result.data || []
+          setStats({
+            total: result.pagination?.total || 0,
+            paymentReward: data.filter((p: any) =>
+              p.recordType === 'payment_reward' || p.record_type === 'payment_reward'
+            ).length,
+            mallConsumption: data.filter((p: any) =>
+              p.recordType === 'mall_consumption' || p.record_type === 'mall_consumption'
+            ).length,
+            adminAdjust: data.filter((p: any) =>
+              p.recordType === 'admin_adjust' || p.record_type === 'admin_adjust'
+            ).length
+          })
+        }
       } else {
         message.error(result.message || '加载积分数据失败')
       }
@@ -2635,7 +2667,7 @@ const PointsPage: React.FC = () => {
           <Card size="small">
             <Statistic
               title="总积分记录"
-              value={pagination.total}
+              value={stats.total}
               prefix={<FileTextOutlined />}
               valueStyle={{ color: '#1890ff' }}
             />
@@ -2645,11 +2677,10 @@ const PointsPage: React.FC = () => {
           <Card size="small">
             <Statistic
               title="支付奖励"
-              value={points.filter((p: any) =>
-                (p.recordType === 'payment_reward' || p.record_type === 'payment_reward')
-              ).length}
+              value={stats.paymentReward}
               prefix={<GiftOutlined />}
               valueStyle={{ color: '#52c41a' }}
+              suffix={<span style={{ fontSize: '12px', color: '#999' }}>当前页</span>}
             />
           </Card>
         </Col>
@@ -2657,11 +2688,10 @@ const PointsPage: React.FC = () => {
           <Card size="small">
             <Statistic
               title="商城消费"
-              value={points.filter((p: any) =>
-                (p.recordType === 'mall_consumption' || p.record_type === 'mall_consumption')
-              ).length}
+              value={stats.mallConsumption}
               prefix={<ShoppingOutlined />}
               valueStyle={{ color: '#faad14' }}
+              suffix={<span style={{ fontSize: '12px', color: '#999' }}>当前页</span>}
             />
           </Card>
         </Col>
@@ -2669,11 +2699,10 @@ const PointsPage: React.FC = () => {
           <Card size="small">
             <Statistic
               title="管理员调整"
-              value={points.filter((p: any) =>
-                (p.recordType === 'admin_adjust' || p.record_type === 'admin_adjust')
-              ).length}
+              value={stats.adminAdjust}
               prefix={<ToolOutlined />}
               valueStyle={{ color: '#722ed1' }}
+              suffix={<span style={{ fontSize: '12px', color: '#999' }}>当前页</span>}
             />
           </Card>
         </Col>
