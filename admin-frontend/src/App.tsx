@@ -2440,7 +2440,7 @@ const MerchantsPage: React.FC = () => {
                   {merchantDetail.totalOrders > 0 || (merchantDetail.stats && merchantDetail.stats.paidOrders > 0) ? (
                     <>
                       <p><strong>总收款金额:</strong> <span style={{ color: '#52c41a', fontSize: '16px', fontWeight: 'bold' }}>
-                        ¥{(merchantDetail.totalAmount || 0).toFixed(2)}
+                        ¥{(parseFloat(merchantDetail.totalAmount) || 0).toFixed(2)}
                       </span></p>
                       <p><strong>总订单数:</strong> <span style={{ color: '#1890ff', fontWeight: 500 }}>
                         {merchantDetail.totalOrders || 0} 笔

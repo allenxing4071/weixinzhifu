@@ -1490,11 +1490,12 @@ app.get('/api/v1/admin/points', async (req, res) => {
 });
 
 // ==================== 管理后台 - 管理员用户管理API ====================
+// 获取管理员列表（带统计）
 app.get('/api/v1/admin/admin-users', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pageSize) || 10;
-    
+
     // 模拟数据
     const adminUsers = [
       {
@@ -1510,10 +1511,19 @@ app.get('/api/v1/admin/admin-users', async (req, res) => {
         lastLoginAt: new Date().toISOString()
       }
     ];
-    
-    res.json({ 
-      success: true, 
+
+    // 统计数据
+    const stats = {
+      total: adminUsers.length,
+      active: adminUsers.filter(u => u.status === 'active').length,
+      superAdmins: adminUsers.filter(u => u.roleCode === 'super_admin').length,
+      admins: adminUsers.filter(u => u.roleCode === 'admin').length
+    };
+
+    res.json({
+      success: true,
       data: adminUsers,
+      stats: stats,
       pagination: {
         page,
         pageSize,
@@ -1522,6 +1532,90 @@ app.get('/api/v1/admin/admin-users', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: '获取管理员列表失败', error: error.message });
+  }
+});
+
+// 创建管理员
+app.post('/api/v1/admin/admin-users', async (req, res) => {
+  try {
+    const { username, password, realName, email, phone, role } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: '用户名和密码为必填项' });
+    }
+
+    // 模拟创建成功
+    const newUser = {
+      id: `admin-${Date.now()}`,
+      username,
+      realName: realName || username,
+      email,
+      phone,
+      status: 'active',
+      roleCode: role || 'admin',
+      roleName: role === 'super_admin' ? '超级管理员' : '管理员',
+      createdAt: new Date().toISOString()
+    };
+
+    res.json({ success: true, data: newUser, message: '管理员创建成功' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '创建管理员失败', error: error.message });
+  }
+});
+
+// 更新管理员
+app.put('/api/v1/admin/admin-users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { realName, email, phone, role, status } = req.body;
+
+    // 模拟更新成功
+    const updatedUser = {
+      id,
+      realName,
+      email,
+      phone,
+      status,
+      roleCode: role,
+      roleName: role === 'super_admin' ? '超级管理员' : '管理员',
+      updatedAt: new Date().toISOString()
+    };
+
+    res.json({ success: true, data: updatedUser, message: '管理员信息更新成功' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '更新管理员失败', error: error.message });
+  }
+});
+
+// 删除管理员
+app.delete('/api/v1/admin/admin-users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 不允许删除超级管理员
+    if (id === 'admin-1') {
+      return res.status(403).json({ success: false, message: '不能删除超级管理员' });
+    }
+
+    res.json({ success: true, message: '管理员删除成功' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '删除管理员失败', error: error.message });
+  }
+});
+
+// 重置管理员密码
+app.post('/api/v1/admin/admin-users/:id/reset-password', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({ success: false, message: '新密码不能为空' });
+    }
+
+    res.json({ success: true, message: '密码重置成功' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '重置密码失败', error: error.message });
   }
 });
 
