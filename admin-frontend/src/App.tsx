@@ -2439,20 +2439,18 @@ const MerchantsPage: React.FC = () => {
               </Col>
               <Col span={12}>
                 <Card title="业务数据" size="small" style={{ marginBottom: 16 }}>
-                  {merchantDetail.totalOrders > 0 || (merchantDetail.stats && merchantDetail.stats.paidOrders > 0) ? (
+                  {merchantDetail.stats && merchantDetail.stats.paidOrders > 0 ? (
                     <>
                       <p><strong>总收款金额:</strong> <span style={{ color: '#52c41a', fontSize: '16px', fontWeight: 'bold' }}>
-                        ¥{(parseFloat(merchantDetail.totalAmount) || 0).toFixed(2)}
+                        ¥{(merchantDetail.stats.totalAmount || 0).toFixed(2)}
                       </span></p>
                       <p><strong>总订单数:</strong> <span style={{ color: '#1890ff', fontWeight: 500 }}>
-                        {merchantDetail.totalOrders || 0} 笔
+                        {merchantDetail.stats.paidOrders || 0} 笔
                       </span></p>
-                      {merchantDetail.stats && (
-                        <p style={{ fontSize: '12px', color: '#666' }}>
-                          <ClockCircleOutlined /> 待处理: {merchantDetail.stats.pendingOrders || 0} 笔 |
-                          已完成: {merchantDetail.stats.paidOrders || 0} 笔
-                        </p>
-                      )}
+                      <p style={{ fontSize: '12px', color: '#666' }}>
+                        <ClockCircleOutlined /> 待处理: {merchantDetail.stats.pendingOrders || 0} 笔 |
+                        已完成: {merchantDetail.stats.paidOrders || 0} 笔
+                      </p>
                     </>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '20px 0', color: '#999' }}>
