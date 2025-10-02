@@ -2526,10 +2526,14 @@ const PointsPage: React.FC = () => {
 
       const result = await apiRequest(`/admin/points?${params}`)
       if (result.success) {
-        setPoints(result.data || [])
+        // 修复：正确处理嵌套的数据结构
+        const pointsList = result.data?.list || result.data || []
+        const paginationData = result.data?.pagination || result.pagination || {}
+        
+        setPoints(Array.isArray(pointsList) ? pointsList : [])
         setPagination(prev => ({
           ...prev,
-          total: result.pagination?.total || 0
+          total: paginationData.total || 0
         }))
 
         // 设置统计数据（从API或计算当前页）
@@ -2537,17 +2541,17 @@ const PointsPage: React.FC = () => {
           setStats((result as any).stats)
         } else {
           // 如果API没有返回stats，计算当前页的统计
-          const data = result.data || []
+          const data = Array.isArray(pointsList) ? pointsList : []
           setStats({
-            total: result.pagination?.total || 0,
+            total: paginationData.total || 0,
             paymentReward: data.filter((p: any) =>
-              p.recordType === 'payment_reward' || p.record_type === 'payment_reward'
+              p.recordType === 'payment_reward' || p.record_type === 'payment_reward' || p.type === 'payment_reward'
             ).length,
             mallConsumption: data.filter((p: any) =>
-              p.recordType === 'mall_consumption' || p.record_type === 'mall_consumption'
+              p.recordType === 'mall_consumption' || p.record_type === 'mall_consumption' || p.type === 'mall_consumption'
             ).length,
             adminAdjust: data.filter((p: any) =>
-              p.recordType === 'admin_adjust' || p.record_type === 'admin_adjust'
+              p.recordType === 'admin_adjust' || p.record_type === 'admin_adjust' || p.type === 'admin_adjust'
             ).length
           })
         }
@@ -2573,27 +2577,27 @@ const PointsPage: React.FC = () => {
   const columns = [
     {
       title: '用户信息',
-      dataIndex: 'userNickname',
+      dataIndex: 'userName',
       key: 'user_info',
       width: 180,
-      render: (nickname: string, record: any) => (
+      render: (userName: string, record: any) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{nickname || '未知用户'}</div>
+          <div style={{ fontWeight: 500 }}>{userName || record.userNickname || record.user_name || '未知用户'}</div>
           <div style={{ fontSize: '12px', color: '#666' }}>ID: {record.userId || record.user_id || '-'}</div>
-          {record.userPhone && (
-            <div style={{ fontSize: '12px', color: '#999' }}>{record.userPhone}</div>
+          {(record.userPhone || record.user_phone) && (
+            <div style={{ fontSize: '12px', color: '#999' }}>{record.userPhone || record.user_phone}</div>
           )}
         </div>
       )
     },
     {
       title: '积分变动',
-      dataIndex: 'pointsChange',
+      dataIndex: 'amount',
       key: 'pointsChange',
       width: 120,
       align: 'center' as const,
-      render: (points: number, record: any) => {
-        const pointsValue = points || record.points_change || 0;
+      render: (amount: number, record: any) => {
+        const pointsValue = amount || record.pointsChange || record.points_change || 0;
         return (
           <span style={{
             color: pointsValue > 0 ? '#52c41a' : '#ff4d4f',
@@ -2624,12 +2628,14 @@ const PointsPage: React.FC = () => {
       width: 200,
       render: (merchantName: string, record: any) => {
         const name = merchantName || record.merchant_name || '未知商户';
+        const recordType = record.type || record.recordType || record.record_type || '';
         return (
           <div>
             <div style={{ fontWeight: 500 }}>{name}</div>
             <div style={{ fontSize: '12px', color: '#666' }}>
-              {record.recordType === 'payment_reward' || record.record_type === 'payment_reward' ? '支付奖励' :
-               record.recordType === 'mall_consumption' || record.record_type === 'mall_consumption' ? '商城消费' : '管理员调整'}
+              {recordType === 'payment_reward' ? '支付奖励' :
+               recordType === 'mall_consumption' ? '商城消费' : 
+               recordType === 'admin_adjust' ? '管理员调整' : '其他'}
             </div>
           </div>
         );
