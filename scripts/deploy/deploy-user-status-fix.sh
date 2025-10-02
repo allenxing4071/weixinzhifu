@@ -15,12 +15,13 @@ echo ""
 # 配置变量
 SERVER_IP="8.156.84.226"
 SERVER_USER="root"
-SSH_KEY="../config/ssh/weixinpay.pem"
+PROJECT_ROOT="/Users/xinghailong/Documents/soft/weixinzhifu"
+SSH_KEY="${PROJECT_ROOT}/config/ssh/weixinpay.pem"
 DB_NAME="weixin_payment"
 DB_USER="root"
-FRONTEND_BUILD_DIR="../admin-frontend/build"
+FRONTEND_BUILD_DIR="${PROJECT_ROOT}/admin-frontend/build"
 SERVER_WEB_DIR="/var/www/admin"
-SQL_FILE="../backend/sql/fix_users_status.sql"
+SQL_FILE="${PROJECT_ROOT}/backend/sql/fix_users_status.sql"
 
 # 颜色定义
 GREEN='\033[0;32m'
@@ -44,7 +45,7 @@ print_error() {
 # 步骤1: 构建前端
 echo ""
 print_info "步骤1: 构建前端代码..."
-cd admin-frontend
+cd ${PROJECT_ROOT}/admin-frontend
 npm run build
 if [ $? -eq 0 ]; then
     print_info "✅ 前端构建成功"
@@ -52,7 +53,7 @@ else
     print_error "❌ 前端构建失败"
     exit 1
 fi
-cd ..
+cd ${PROJECT_ROOT}
 
 # 步骤2: 备份当前前端代码
 echo ""
