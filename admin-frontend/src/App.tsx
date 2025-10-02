@@ -1124,6 +1124,11 @@ const MerchantsPage: React.FC = () => {
   const [batchLoading, setBatchLoading] = useState(false)
   const [dataSource, setDataSource] = useState('unknown')
   
+  // 搜索状态
+  const [searchText, setSearchText] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [merchantTypeFilter, setMerchantTypeFilter] = useState('all')
+  
   // 新增商户弹窗状态
   const [createModalVisible, setCreateModalVisible] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
@@ -1166,11 +1171,19 @@ const MerchantsPage: React.FC = () => {
   useEffect(() => {
     loadMerchants()
     loadStats()
-  }, [])
+  }, [searchText, statusFilter, merchantTypeFilter])
 
   const loadMerchants = async () => {
     try {
-      const result = await apiRequest('/admin/merchants')
+      setLoading(true)
+      const params = new URLSearchParams({
+        ...(searchText && { search: searchText }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(merchantTypeFilter !== 'all' && { type: merchantTypeFilter })
+      })
+      
+      const url = params.toString() ? `/admin/merchants?${params}` : '/admin/merchants'
+      const result = await apiRequest(url)
       
       if (result.success) {
         // 处理后端返回的数据结构 { data: { list: [...], pagination: {...} } }
@@ -1900,9 +1913,9 @@ const MerchantsPage: React.FC = () => {
               <Input.Search
                 placeholder="搜索商户名称、联系人、电话"
                 allowClear
-                onSearch={(value) => {
-                  // TODO: 实现搜索功能
-                }}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onSearch={(value) => setSearchText(value)}
                 style={{ width: '100%' }}
               />
             </Col>
@@ -1910,24 +1923,21 @@ const MerchantsPage: React.FC = () => {
               <Select
                 placeholder="筛选状态"
                 allowClear
-                onChange={(value) => {
-                  // TODO: 实现状态筛选
-                }}
+                value={statusFilter === 'all' ? undefined : statusFilter}
+                onChange={(value) => setStatusFilter(value || 'all')}
                 style={{ width: '100%' }}
               >
-                <Select.Option value="已完成">已完成</Select.Option>
-                <Select.Option value="审核中">审核中</Select.Option>
-                <Select.Option value="已驳回">已驳回</Select.Option>
-                <Select.Option value="待审核">待审核</Select.Option>
+                <Select.Option value="active">活跃</Select.Option>
+                <Select.Option value="pending">待审核</Select.Option>
+                <Select.Option value="disabled">已禁用</Select.Option>
               </Select>
             </Col>
             <Col span={4}>
               <Select
                 placeholder="商户类型"
                 allowClear
-                onChange={(value) => {
-                  // TODO: 实现类型筛选
-                }}
+                value={merchantTypeFilter === 'all' ? undefined : merchantTypeFilter}
+                onChange={(value) => setMerchantTypeFilter(value || 'all')}
                 style={{ width: '100%' }}
               >
                 <Select.Option value="INDIVIDUAL">个体工商户</Select.Option>
