@@ -3,6 +3,49 @@ const express = require('express');
 const router = express.Router();
 const { validatePointsHistory } = require('../middlewares/validation');
 
+// ==================== 获取积分记录列表（管理后台） ====================
+router.get('/', async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 20;
+    const offset = (page - 1) * pageSize;
+
+    const [records] = await pool.query(`
+      SELECT
+        pr.id,
+        pr.user_id as userId,
+        u.nickname as userName,
+        pr.record_type as type,
+        pr.points_change as amount,
+        pr.merchant_name as merchantName,
+        pr.description,
+        pr.created_at as createdAt
+      FROM points_records pr
+      LEFT JOIN users u ON pr.user_id = u.id
+      ORDER BY pr.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [pageSize, offset]);
+
+    const [countResult] = await pool.query(`SELECT COUNT(*) as total FROM points_records`);
+    const total = countResult[0].total;
+
+    res.json({
+      success: true,
+      data: {
+        list: records,
+        pagination: { page, pageSize, total }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ==================== 获取积分余额（小程序） ====================
 router.get('/balance', async (req, res, next) => {
   try {

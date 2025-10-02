@@ -187,9 +187,9 @@ router.post('/', requireAdmin, validateCreateMerchant, async (req, res, next) =>
 
     await pool.execute(`
       INSERT INTO merchants
-      (id, merchant_name, merchant_no, business_category, contact_person, contact_phone, status)
-      VALUES (?, ?, ?, ?, ?, ?, 'active')
-    `, [merchantId, merchantName, wechatMchId, businessCategory, contactPerson, contactPhone]);
+      (id, merchant_name, merchant_no, business_category, contact_person, contact_phone, business_license, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+    `, [merchantId, merchantName, wechatMchId, businessCategory, contactPerson, contactPhone, wechatMchId]);
 
     logOperation('Create Merchant', req.user.id, {
       merchantId,
