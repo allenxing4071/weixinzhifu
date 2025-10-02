@@ -123,19 +123,19 @@ router.get('/:id', validateMerchantId, async (req, res, next) => {
 
     const [merchants] = await pool.execute(`
       SELECT
-        id,
-        merchant_name as name,
-        merchant_no as wechatMchId,
-        sub_mch_id as subMchId,
-        business_category as businessCategory,
-        contact_person as contactPerson,
-        contact_phone as contactPhone,
-        qr_code as qrCode,
-        status,
-        created_at as createdAt,
-        updated_at as updatedAt
-      FROM merchants
-      WHERE id = ?
+        m.id,
+        m.merchant_name as name,
+        m.merchant_no as wechatMchId,
+        m.sub_mch_id as subMchId,
+        m.business_category as businessCategory,
+        m.contact_person as contactPerson,
+        m.contact_phone as contactPhone,
+        m.qr_code as qrCode,
+        m.status,
+        m.created_at as createdAt,
+        m.updated_at as updatedAt
+      FROM merchants m
+      WHERE m.id = ?
     `, [id]);
 
     if (merchants.length === 0) {
@@ -145,9 +145,32 @@ router.get('/:id', validateMerchantId, async (req, res, next) => {
       });
     }
 
+    // 获取商户的业务统计数据
+    const [stats] = await pool.execute(`
+      SELECT
+        COUNT(DISTINCT o.user_id) as customerCount,
+        COUNT(CASE WHEN o.status = 'paid' THEN 1 END) as paidOrders,
+        COUNT(CASE WHEN o.status = 'pending' THEN 1 END) as pendingOrders,
+        COUNT(CASE WHEN o.status = 'cancelled' THEN 1 END) as cancelledOrders,
+        COALESCE(SUM(CASE WHEN o.status = 'paid' THEN o.amount ELSE 0 END), 0) as totalAmount,
+        COALESCE(SUM(CASE WHEN o.status = 'paid' THEN o.points_awarded ELSE 0 END), 0) as totalPoints
+      FROM payment_orders o
+      WHERE o.merchant_id = ?
+    `, [id]);
+
     res.json({
       success: true,
-      data: merchants[0]
+      data: {
+        ...merchants[0],
+        stats: {
+          customerCount: stats[0].customerCount || 0,
+          paidOrders: stats[0].paidOrders || 0,
+          pendingOrders: stats[0].pendingOrders || 0,
+          cancelledOrders: stats[0].cancelledOrders || 0,
+          totalAmount: (stats[0].totalAmount || 0) / 100, // 转换为元
+          totalPoints: stats[0].totalPoints || 0
+        }
+      }
     });
   } catch (error) {
     next(error);
