@@ -614,7 +614,7 @@ const DashboardPage: React.FC = () => {
 
 // 用户管理页面
 const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [userDetailVisible, setUserDetailVisible] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
@@ -631,7 +631,9 @@ const UsersPage: React.FC = () => {
       setLoading(true)
       const result = await apiRequest('/admin/users')
       if (result.success) {
-        setUsers(result.data || [])
+        // 处理后端返回的数据结构 { data: { list: [...], pagination: {...} } }
+        const usersList = result.data?.list || result.data || []
+        setUsers(Array.isArray(usersList) ? usersList : [])
       }
     } catch (error) {
       console.error('Load users error:', error)
@@ -1171,7 +1173,9 @@ const MerchantsPage: React.FC = () => {
       const result = await apiRequest('/admin/merchants')
       
       if (result.success) {
-        setMerchants(result.data || [])
+        // 处理后端返回的数据结构 { data: { list: [...], pagination: {...} } }
+        const merchantsList = result.data?.list || result.data || []
+        setMerchants(Array.isArray(merchantsList) ? merchantsList : [])
         setDataSource((result as any).dataSource || 'unknown')
       } else {
         message.error(result.message || '加载商户数据失败')
