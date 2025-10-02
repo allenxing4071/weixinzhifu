@@ -10,8 +10,10 @@ echo "================================================"
 # 配置变量
 SERVER_IP="8.156.84.226"
 SERVER_USER="root"
-SSH_KEY="../../config/ssh/weixinpay.pem"
-LOCAL_BUILD_DIR="../../admin-frontend/build"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+SSH_KEY="${PROJECT_ROOT}/config/ssh/weixinpay.pem"
+LOCAL_BUILD_DIR="${PROJECT_ROOT}/admin-frontend/build"
 REMOTE_DIR="/var/www/admin"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
@@ -41,9 +43,8 @@ fi
 echo ""
 echo "📦 步骤2: 压缩本地构建文件..."
 ARCHIVE_NAME="admin-build-${TIMESTAMP}.tar.gz"
-cd admin-frontend
-tar -czf "../${ARCHIVE_NAME}" build/
-cd ..
+cd "${PROJECT_ROOT}"
+tar -czf "${ARCHIVE_NAME}" -C admin-frontend build/
 echo "✅ 压缩完成: ${ARCHIVE_NAME} ($(du -h ${ARCHIVE_NAME} | cut -f1))"
 
 # 步骤3: 上传到服务器
@@ -214,6 +215,7 @@ fi
 # 步骤6: 清理本地临时文件
 echo ""
 echo "🧹 步骤6: 清理本地临时文件..."
+cd "${PROJECT_ROOT}"
 rm -f "${ARCHIVE_NAME}"
 echo "✅ 本地临时文件已清理"
 
