@@ -2836,10 +2836,13 @@ const OrdersPage: React.FC = () => {
 
       const result = await apiRequest(`/admin/orders?${params}`)
       if (result.success) {
-        setOrders(result.data || [])
+        // 处理后端返回的数据结构 { data: { list: [...], pagination: {...} } }
+        const ordersList = result.data?.list || result.data || []
+        const paginationData = result.data?.pagination || result.pagination || {}
+        setOrders(Array.isArray(ordersList) ? ordersList : [])
         setPagination(prev => ({
           ...prev,
-          total: result.pagination?.total || 0
+          total: paginationData.total || 0
         }))
       } else {
         message.error(result.message || '加载订单数据失败')
