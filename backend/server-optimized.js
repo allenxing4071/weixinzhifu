@@ -129,7 +129,7 @@ app.use('/api/v1/admin/users', authenticateToken, usersRoutes);
 app.use('/api/v1/admin/merchants', authenticateToken, merchantsRoutes);
 app.use('/api/v1/admin/orders', authenticateToken, ordersRoutes);
 app.use('/api/v1/admin/admin-users', authenticateToken, adminUsersRoutes); // 路由内部已有requireAdmin中间件
-app.use('/api/v1/points', authenticateToken, pointsRoutes);
+app.use('/api/v1/admin/points', authenticateToken, pointsRoutes); // 管理后台积分管理
 app.use('/api/v1/payments', authenticateToken, paymentsRoutes);
 
 // ==================== 404处理 ====================

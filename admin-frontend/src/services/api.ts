@@ -277,9 +277,9 @@ export const pointsApi = {
   getPointsStats: (params?: { startDate?: string; endDate?: string }): Promise<any> =>
     apiClient.get('/admin/points/stats', params),
 
-  // 获取积分记录
+  // 获取积分记录 - 后端 GET / 端点
   getPointsRecords: (params: PointsRecordParams): Promise<{ list: PointsRecord[]; total: number }> =>
-    apiClient.get('/admin/points/records', params),
+    apiClient.get('/admin/points', params),
 
   // 获取积分配置
   getPointsConfig: (): Promise<PointsConfig> =>
