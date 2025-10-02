@@ -8,6 +8,34 @@ const { logOperation } = require('../utils/logger');
 // 所有用户管理接口需要管理员权限
 router.use(requireAdmin);
 
+// ==================== 获取用户统计数据 ====================
+router.get('/stats', async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const [stats] = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        COUNT(CASE WHEN up.available_points > 0 THEN 1 END) as activeUsers,
+        COALESCE(SUM(up.available_points), 0) as totalPoints,
+        COALESCE(SUM(up.total_earned), 0) as totalEarned,
+        COALESCE(SUM(up.total_spent), 0) as totalSpent
+      FROM users u
+      LEFT JOIN user_points up ON u.id = up.user_id
+    `);
+
+    res.json({
+      success: true,
+      data: stats[0] || { total: 0, activeUsers: 0, totalPoints: 0, totalEarned: 0, totalSpent: 0 }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ==================== 获取用户列表 ====================
 router.get('/', validatePagination, async (req, res, next) => {
   try {
@@ -61,14 +89,16 @@ router.get('/', validatePagination, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: users.map(user => ({
-        ...user,
-        totalAmount: user.totalAmount / 100 // 转换为元
-      })),
-      pagination: {
-        page,
-        pageSize,
-        total: countResult[0].total
+      data: {
+        list: users.map(user => ({
+          ...user,
+          totalAmount: user.totalAmount / 100 // 转换为元
+        })),
+        pagination: {
+          page,
+          pageSize,
+          total: countResult[0].total
+        }
       }
     });
   } catch (error) {

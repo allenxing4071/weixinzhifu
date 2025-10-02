@@ -9,6 +9,33 @@ const {
 const { requireAdmin } = require('../utils/jwt');
 const { logOperation } = require('../utils/logger');
 
+// ==================== 获取订单统计数据 ====================
+router.get("/stats", async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: "数据库未连接" });
+    }
+
+    const [stats] = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as totalAmount
+      FROM payment_orders
+    `);
+
+    res.json({
+      success: true,
+      data: stats[0] || { total: 0, paid: 0, pending: 0, cancelled: 0, totalAmount: 0 }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ==================== 获取订单列表（管理后台） ====================
 router.get('/', validatePagination, async (req, res, next) => {
   try {
@@ -86,14 +113,16 @@ router.get('/', validatePagination, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: orders.map(order => ({
-        ...order,
-        amount: order.amount / 100 // 转换为元
-      })),
-      pagination: {
-        page,
-        pageSize,
-        total: countResult[0].total
+      data: {
+        list: orders.map(order => ({
+          ...order,
+          amount: order.amount / 100 // 转换为元
+        })),
+        pagination: {
+          page,
+          pageSize,
+          total: countResult[0].total
+        }
       }
     });
   } catch (error) {

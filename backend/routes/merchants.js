@@ -10,6 +10,32 @@ const {
 const { requireAdmin } = require('../utils/jwt');
 const { logOperation } = require('../utils/logger');
 
+// ==================== 获取商户统计数据 ====================
+router.get('/stats', async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const [stats] = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'disabled' THEN 1 ELSE 0 END) as disabled
+      FROM merchants
+    `);
+
+    res.json({
+      success: true,
+      data: stats[0] || { total: 0, active: 0, pending: 0, disabled: 0 }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ==================== 获取商户列表（管理后台） ====================
 router.get('/', validatePagination, async (req, res, next) => {
   try {
@@ -71,11 +97,13 @@ router.get('/', validatePagination, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: merchants,
-      pagination: {
-        page,
-        pageSize,
-        total: countResult[0].total
+      data: {
+        list: merchants,
+        pagination: {
+          page,
+          pageSize,
+          total: countResult[0].total
+        }
       }
     });
   } catch (error) {
@@ -286,7 +314,68 @@ router.delete('/:id', requireAdmin, validateMerchantId, async (req, res, next) =
   }
 });
 
-// ==================== 获取商户统计数据 ====================
+// ==================== 生成商户二维码 ====================
+router.post('/:id/qrcode', requireAdmin, validateMerchantId, async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const { id } = req.params;
+
+    // 检查商户是否存在
+    const [merchants] = await pool.execute(
+      'SELECT id, merchant_name, merchant_no, sub_mch_id FROM merchants WHERE id = ?',
+      [id]
+    );
+
+    if (merchants.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '商户不存在'
+      });
+    }
+
+    const merchant = merchants[0];
+
+    // 检查必要字段
+    if (!merchant.merchant_no) {
+      return res.status(400).json({
+        success: false,
+        message: '商户缺少微信商户号，无法生成二维码'
+      });
+    }
+
+    // 生成二维码数据（这里简化处理，实际应该调用微信支付API）
+    // 二维码内容格式：weixin://wxpay/bizpayurl?pr=xxxxx
+    const qrCodeData = `weixin://wxpay/bizpayurl?pr=${merchant.merchant_no}_${Date.now()}`;
+    
+    // 更新商户的二维码字段
+    await pool.execute(
+      'UPDATE merchants SET qr_code = ?, updated_at = NOW() WHERE id = ?',
+      [qrCodeData, id]
+    );
+
+    logOperation('Generate QR Code', req.user.id, {
+      merchantId: id,
+      merchantName: merchant.merchant_name
+    });
+
+    res.json({
+      success: true,
+      message: '二维码生成成功',
+      data: {
+        qrCode: qrCodeData,
+        merchantName: merchant.merchant_name
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ==================== 获取商户详细统计数据 ====================
 router.get('/:id/stats', validateMerchantId, async (req, res, next) => {
   try {
     const pool = req.app.locals.pool;
