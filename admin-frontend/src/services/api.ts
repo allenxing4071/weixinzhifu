@@ -139,19 +139,19 @@ const apiClient = new ApiClient()
 export const authApi = {
   // 管理员登录
   login: (data: AdminLoginRequest): Promise<AdminLoginResponse> =>
-    apiClient.post('/admin/auth/login', data),
+    apiClient.post('/auth/admin/login', data),
 
   // 获取当前管理员信息
   getCurrentAdmin: (): Promise<Admin> =>
-    apiClient.get('/admin/auth/me'),
+    apiClient.get('/auth/admin/me'),
 
   // 管理员登出
   logout: (): Promise<void> =>
-    apiClient.post('/admin/auth/logout'),
+    apiClient.post('/auth/admin/logout'),
 
   // 修改密码
   changePassword: (data: { oldPassword: string; newPassword: string }): Promise<void> =>
-    apiClient.post('/admin/auth/change-password', data)
+    apiClient.post('/auth/admin/change-password', data)
 }
 
 // ============= 仪表板相关API =============
