@@ -124,6 +124,7 @@ router.get('/:id', validateUserId, async (req, res, next) => {
         u.nickname,
         u.avatar,
         u.phone,
+        u.status,
         u.created_at as createdAt,
         u.updated_at as updatedAt,
         COALESCE(up.available_points, 0) as availablePoints,
@@ -143,14 +144,17 @@ router.get('/:id', validateUserId, async (req, res, next) => {
 
     const user = users[0];
 
-    // 获取消费统计
+    // 获取订单统计（按状态分组）
     const [orderStats] = await pool.execute(`
       SELECT
-        COUNT(*) as orderCount,
-        COALESCE(SUM(amount), 0) as totalAmount,
-        COALESCE(SUM(points_awarded), 0) as totalPoints
+        COUNT(*) as totalOrders,
+        COUNT(CASE WHEN status = 'paid' THEN 1 END) as paidOrders,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pendingOrders,
+        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelledOrders,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as totalAmount,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN points_awarded ELSE 0 END), 0) as totalPoints
       FROM payment_orders
-      WHERE user_id = ? AND status = 'paid'
+      WHERE user_id = ?
     `, [id]);
 
     // 获取商户消费统计（最多5个）
@@ -169,19 +173,112 @@ router.get('/:id', validateUserId, async (req, res, next) => {
       LIMIT 5
     `, [id]);
 
+    // 获取最近积分记录（最多10条）
+    const [pointsHistory] = await pool.execute(`
+      SELECT
+        id,
+        points_change as pointsChange,
+        record_type as recordType,
+        merchant_name as merchantName,
+        description,
+        created_at as createdAt
+      FROM points_records
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT 10
+    `, [id]);
+
+    // 获取最近订单（最多10条）
+    const [recentOrders] = await pool.execute(`
+      SELECT
+        id,
+        merchant_name as merchantName,
+        amount,
+        points_awarded as pointsAwarded,
+        status,
+        created_at as createdAt
+      FROM payment_orders
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT 10
+    `, [id]);
+
+    // 返回扁平化的数据结构，与前端期望的格式匹配
     res.json({
       success: true,
       data: {
-        userInfo: user,
+        // 基本信息
+        ...user,
+        // 订单统计
         orderStats: {
-          ...orderStats[0],
-          totalAmount: orderStats[0].totalAmount / 100
+          totalOrders: orderStats[0].totalOrders || 0,
+          paidOrders: orderStats[0].paidOrders || 0,
+          pendingOrders: orderStats[0].pendingOrders || 0,
+          cancelledOrders: orderStats[0].cancelledOrders || 0,
+          totalAmount: orderStats[0].totalAmount || 0,
+          totalPoints: orderStats[0].totalPoints || 0
         },
+        // 商户统计
         merchantStats: merchantStats.map(stat => ({
           ...stat,
-          totalAmount: stat.totalAmount / 100
+          totalAmount: stat.totalAmount || 0
+        })),
+        // 积分历史
+        pointsHistory: pointsHistory || [],
+        // 最近订单
+        recentOrders: recentOrders.map(order => ({
+          ...order,
+          amount: order.amount || 0
         }))
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ==================== 切换用户状态 ====================
+router.put('/:id/status', validateUserId, async (req, res, next) => {
+  try {
+    const pool = req.app.locals.pool;
+    if (!pool) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status || !['active', 'locked'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: '状态参数无效，必须是 active 或 locked'
+      });
+    }
+
+    // 检查用户是否存在
+    const [users] = await pool.execute('SELECT id FROM users WHERE id = ?', [id]);
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    // 更新用户状态
+    await pool.execute(
+      'UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?',
+      [status, id]
+    );
+
+    logOperation('Update User Status', req.user.id, {
+      userId: id,
+      newStatus: status
+    });
+
+    res.json({
+      success: true,
+      message: `用户状态已更新为${status === 'active' ? '正常' : '锁定'}`,
+      data: { userId: id, status }
     });
   } catch (error) {
     next(error);
