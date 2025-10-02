@@ -59,11 +59,12 @@ router.get('/', validatePagination, async (req, res, next) => {
 
     const conditions = [];
     
-    // 搜索功能：搜索订单ID、商户名称、用户昵称
+    // 搜索功能：搜索订单ID、商户名称
+    // 注意：不能在WHERE中使用u.nickname，因为可能有些订单没有关联用户
     if (search) {
-      conditions.push('(o.id LIKE ? OR o.merchant_name LIKE ? OR u.nickname LIKE ?)');
+      conditions.push('(o.id LIKE ? OR o.merchant_name LIKE ?)');
       const searchPattern = `%${search}%`;
-      params.push(searchPattern, searchPattern, searchPattern);
+      params.push(searchPattern, searchPattern);
     }
     
     if (status) {
