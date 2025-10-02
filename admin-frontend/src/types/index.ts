@@ -35,7 +35,7 @@ export interface User {
   avatar?: string
   phone?: string
   pointsBalance: number
-  status: 'active' | 'inactive' | 'banned'
+  status: 'active' | 'locked' | 'inactive' | 'banned'  // 修复：添加 locked 状态
   createdAt: string
   updatedAt: string
 }

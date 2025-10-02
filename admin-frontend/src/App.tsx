@@ -783,11 +783,21 @@ const UsersPage: React.FC = () => {
       dataIndex: 'status', 
       key: 'status',
       width: 120,
-      render: (status: string) => (
-        <Tag color={status === 'active' ? 'green' : 'red'}>
-          {status === 'active' ? '正常' : '已锁定'}
-        </Tag>
-      )
+      render: (status: string) => {
+        // 修复：正确处理用户状态显示
+        const statusConfig = {
+          'active': { color: 'green', text: '正常', icon: '✅' },
+          'locked': { color: 'red', text: '已锁定', icon: '🔒' },
+          'inactive': { color: 'red', text: '已锁定', icon: '🔒' },
+          'banned': { color: 'volcano', text: '已封禁', icon: '🚫' }
+        }
+        const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.locked
+        return (
+          <Tag color={config.color}>
+            {config.icon} {config.text}
+          </Tag>
+        )
+      }
     },
     { 
       title: '注册时间', 
@@ -861,7 +871,8 @@ const UsersPage: React.FC = () => {
               options={[
                 { label: '全部状态', value: 'all' },
                 { label: '✅ 正常', value: 'active' },
-                { label: '🔒 已锁定', value: 'locked' }
+                { label: '🔒 已锁定', value: 'locked' },
+                { label: '🚫 已封禁', value: 'banned' }
               ]}
             />
           </div>
@@ -954,9 +965,20 @@ const UsersPage: React.FC = () => {
                   <p><strong>微信ID:</strong> {selectedUser.wechatId || '未绑定'}</p>
                   <p><strong>手机号:</strong> {selectedUser.phone || '未设置'}</p>
                   <p><strong>账户状态:</strong> 
-                    <Tag color={selectedUser.status === 'active' ? 'green' : 'red'}>
-                      {selectedUser.status === 'active' ? '正常' : '已锁定'}
-                    </Tag>
+                    {(() => {
+                      const statusConfig = {
+                        'active': { color: 'green', text: '正常', icon: '✅' },
+                        'locked': { color: 'red', text: '已锁定', icon: '🔒' },
+                        'inactive': { color: 'red', text: '已锁定', icon: '🔒' },
+                        'banned': { color: 'volcano', text: '已封禁', icon: '🚫' }
+                      }
+                      const config = statusConfig[selectedUser.status as keyof typeof statusConfig] || statusConfig.locked
+                      return (
+                        <Tag color={config.color}>
+                          {config.icon} {config.text}
+                        </Tag>
+                      )
+                    })()}
                   </p>
                   <p><strong>注册时间:</strong> {new Date(selectedUser.createdAt).toLocaleString()}</p>
                 </Card>
