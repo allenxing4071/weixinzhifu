@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": "/admin",
+  "proxy": "http://localhost:3000",
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
     "@ant-design/pro-components": "^2.8.10",
