@@ -76,7 +76,7 @@ router.post('/', async (req, res, next) => {
       return res.status(503).json({ success: false, message: '数据库未连接' });
     }
 
-    const { username, password, realName, email, phone, role, permissions } = req.body;
+    const { username, password, realName, email, phone, roleId } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ success: false, message: '用户名和密码为必填项' });
@@ -92,15 +92,15 @@ router.post('/', async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, 12);
 
     // 确定角色
-    const userRole = role || 'admin';
+    const userRoleId = roleId || 'role_admin';
 
     const userId = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // 插入新管理员
     await pool.query(`
-      INSERT INTO admin_users (id, username, password, real_name, email, phone, role, permissions, status, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 'system')
-    `, [userId, username, passwordHash, realName || username, email, phone, userRole, permissions ? JSON.stringify(permissions) : null]);
+      INSERT INTO admin_users (id, username, password, real_name, email, phone, role_id, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+    `, [userId, username, passwordHash, realName || username, email, phone, userRoleId]);
 
     // 获取创建的用户信息
     const [[newUser]] = await pool.query(`
@@ -111,7 +111,7 @@ router.post('/', async (req, res, next) => {
         email,
         phone,
         status,
-        role,
+        role_id as roleId,
         created_at as createdAt
       FROM admin_users
       WHERE id = ?
@@ -132,10 +132,10 @@ router.put('/:id', async (req, res, next) => {
     }
 
     const { id } = req.params;
-    const { realName, email, phone, role, status, permissions } = req.body;
+    const { realName, email, phone, roleId, status } = req.body;
 
     // 检查用户是否存在
-    const [[existingUser]] = await pool.query('SELECT id, role FROM admin_users WHERE id = ?', [id]);
+    const [[existingUser]] = await pool.query('SELECT id, role_id FROM admin_users WHERE id = ?', [id]);
     if (!existingUser) {
       return res.status(404).json({ success: false, message: '管理员不存在' });
     }
@@ -143,9 +143,9 @@ router.put('/:id', async (req, res, next) => {
     // 更新管理员信息
     await pool.query(`
       UPDATE admin_users
-      SET real_name = ?, email = ?, phone = ?, role = ?, status = ?, permissions = ?
+      SET real_name = ?, email = ?, phone = ?, role_id = ?, status = ?
       WHERE id = ?
-    `, [realName, email, phone, role || existingUser.role, status, permissions ? JSON.stringify(permissions) : null, id]);
+    `, [realName, email, phone, roleId || existingUser.role_id, status, id]);
 
     // 获取更新后的用户信息
     const [[updatedUser]] = await pool.query(`
@@ -156,8 +156,7 @@ router.put('/:id', async (req, res, next) => {
         email,
         phone,
         status,
-        role,
-        permissions,
+        role_id as roleId,
         updated_at as updatedAt
       FROM admin_users
       WHERE id = ?
@@ -167,10 +166,8 @@ router.put('/:id', async (req, res, next) => {
       success: true,
       data: {
         ...updatedUser,
-        roleCode: updatedUser.role,
-        roleName: updatedUser.role === 'super_admin' ? '超级管理员' : updatedUser.role === 'admin' ? '管理员' : '只读用户',
-        permissions: updatedUser.permissions || {},
-        role: updatedUser.role
+        roleCode: updatedUser.roleId,
+        roleName: updatedUser.roleId === 'super_admin' ? '超级管理员' : updatedUser.roleId === 'admin' ? '管理员' : '只读用户'
       },
       message: '管理员信息更新成功'
     });
@@ -190,13 +187,13 @@ router.delete('/:id', async (req, res, next) => {
     const { id } = req.params;
 
     // 检查用户是否存在
-    const [[user]] = await pool.query('SELECT id, role FROM admin_users WHERE id = ?', [id]);
+    const [[user]] = await pool.query('SELECT id, role_id FROM admin_users WHERE id = ?', [id]);
     if (!user) {
       return res.status(404).json({ success: false, message: '管理员不存在' });
     }
 
     // 不允许删除超级管理员
-    if (user.role === 'super_admin') {
+    if (user.role_id === 'role_super_admin') {
       return res.status(403).json({ success: false, message: '不能删除超级管理员' });
     }
 
