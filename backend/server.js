@@ -29,6 +29,7 @@ const orderRoutes = require('./routes/orders');
 const pointsRoutes = require('./routes/points');
 const paymentsRoutes = require('./routes/payments');
 const dashboardRoutes = require('./routes/dashboard');
+const adminUsersRoutes = require('./routes/admin-users');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -163,6 +164,7 @@ app.use('/api/v1/admin/dashboard', authenticateToken, dashboardRoutes);
 app.use('/api/v1/admin/users', authenticateToken, userRoutes);
 app.use('/api/v1/admin/merchants', authenticateToken, merchantRoutes);
 app.use('/api/v1/admin/orders', authenticateToken, orderRoutes);
+app.use('/api/v1/admin/admin-users', adminUsersRoutes);
 
 // 小程序API路由（需要认证）
 app.use('/api/v1/points', authenticateToken, pointsRoutes);

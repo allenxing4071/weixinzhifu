@@ -64,20 +64,47 @@ function authenticateToken(req, res, next) {
 
 // 管理员权限中间件
 function requireAdmin(req, res, next) {
-  if (!req.user || req.user.type !== 'admin') {
-    logSecurityEvent('Unauthorized Admin Access Attempt', {
+  // 先进行Token认证
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: '未提供认证令牌'
+    });
+  }
+
+  try {
+    const user = verifyToken(token);
+    req.user = user;
+
+    // 再检查管理员权限
+    if (req.user.type !== 'admin') {
+      logSecurityEvent('Unauthorized Admin Access Attempt', {
+        ip: req.ip,
+        userId: req.user?.id,
+        userType: req.user?.type
+      });
+
+      return res.status(403).json({
+        success: false,
+        message: '需要管理员权限'
+      });
+    }
+
+    next();
+  } catch (error) {
+    logSecurityEvent('Invalid Token Attempt', {
       ip: req.ip,
-      userId: req.user?.id,
-      userType: req.user?.type
+      error: error.message
     });
 
     return res.status(403).json({
       success: false,
-      message: '需要管理员权限'
+      message: error.message || '无效或过期的认证令牌'
     });
   }
-
-  next();
 }
 
 module.exports = {
