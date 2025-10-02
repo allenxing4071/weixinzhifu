@@ -66,6 +66,7 @@ router.get('/', validatePagination, async (req, res, next) => {
         u.nickname,
         u.avatar,
         u.phone,
+        u.status,
         u.created_at as createdAt,
         u.updated_at as updatedAt,
         COALESCE(up.available_points, 0) as availablePoints,
@@ -77,7 +78,7 @@ router.get('/', validatePagination, async (req, res, next) => {
       LEFT JOIN user_points up ON u.id = up.user_id
       LEFT JOIN payment_orders po ON u.id = po.user_id
       ${whereClause}
-      GROUP BY u.id, u.wechat_id, u.nickname, u.avatar, u.phone, u.created_at, u.updated_at,
+      GROUP BY u.id, u.wechat_id, u.nickname, u.avatar, u.phone, u.status, u.created_at, u.updated_at,
                up.available_points, up.total_earned, up.total_spent
       ORDER BY u.created_at DESC
       LIMIT ? OFFSET ?
