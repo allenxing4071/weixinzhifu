@@ -28,8 +28,7 @@ router.get('/', async (req, res, next) => {
         email,
         phone,
         status,
-        role,
-        permissions,
+        role_id as roleId,
         last_login_at as lastLoginAt,
         created_at as createdAt
       FROM admin_users
@@ -45,8 +44,8 @@ router.get('/', async (req, res, next) => {
       SELECT
         COUNT(*) as total,
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
-        SUM(CASE WHEN role = 'super_admin' THEN 1 ELSE 0 END) as superAdmins,
-        SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admins
+        SUM(CASE WHEN role_id = 'super_admin' THEN 1 ELSE 0 END) as superAdmins,
+        SUM(CASE WHEN role_id = 'admin' THEN 1 ELSE 0 END) as admins
       FROM admin_users
     `);
 
@@ -54,9 +53,8 @@ router.get('/', async (req, res, next) => {
       success: true,
       data: adminUsers.map(u => ({
         ...u,
-        roleCode: u.role,
-        roleName: u.role === 'super_admin' ? '超级管理员' : u.role === 'admin' ? '管理员' : '只读用户',
-        permissions: u.permissions || {}
+        roleCode: u.roleId,
+        roleName: u.roleId === 'super_admin' ? '超级管理员' : u.roleId === 'admin' ? '管理员' : '只读用户'
       })),
       stats: stats,
       pagination: {
