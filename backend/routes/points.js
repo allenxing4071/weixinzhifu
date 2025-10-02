@@ -13,7 +13,32 @@ router.get('/', async (req, res, next) => {
 
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pageSize) || 20;
+    const search = req.query.search;
+    const recordType = req.query.recordType;
+    const merchantId = req.query.merchantId;
     const offset = (page - 1) * pageSize;
+
+    // 构建WHERE条件
+    let whereConditions = [];
+    let params = [];
+
+    if (search) {
+      whereConditions.push('(u.nickname LIKE ? OR pr.merchant_name LIKE ? OR pr.description LIKE ?)');
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    if (recordType && recordType !== 'all') {
+      whereConditions.push('pr.record_type = ?');
+      params.push(recordType);
+    }
+
+    if (merchantId && merchantId !== 'all') {
+      whereConditions.push('pr.merchant_id = ?');
+      params.push(merchantId);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     const [records] = await pool.query(`
       SELECT
@@ -27,11 +52,17 @@ router.get('/', async (req, res, next) => {
         pr.created_at as createdAt
       FROM points_records pr
       LEFT JOIN users u ON pr.user_id = u.id
+      ${whereClause}
       ORDER BY pr.created_at DESC
       LIMIT ? OFFSET ?
-    `, [pageSize, offset]);
+    `, [...params, pageSize, offset]);
 
-    const [countResult] = await pool.query(`SELECT COUNT(*) as total FROM points_records`);
+    const [countResult] = await pool.query(`
+      SELECT COUNT(*) as total 
+      FROM points_records pr 
+      LEFT JOIN users u ON pr.user_id = u.id
+      ${whereClause}
+    `, params);
     const total = countResult[0].total;
 
     res.json({
