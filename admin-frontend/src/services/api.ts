@@ -139,7 +139,7 @@ const apiClient = new ApiClient()
 export const authApi = {
   // 管理员登录
   login: (data: AdminLoginRequest): Promise<AdminLoginResponse> =>
-    apiClient.post('/auth/admin/login', data),
+    apiClient.post('/admin/auth/login', data),
 
   // 获取当前管理员信息
   getCurrentAdmin: (): Promise<Admin> =>

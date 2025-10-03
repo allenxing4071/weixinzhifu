@@ -149,7 +149,7 @@ const LoginPage: React.FC = () => {
 
     setLoading(true)
     try {
-      const result = await apiRequest('/auth/admin/login', {
+      const result = await apiRequest('/admin/auth/login', {
         method: 'POST',
         body: JSON.stringify(formData)
       })
