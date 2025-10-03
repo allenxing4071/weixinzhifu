@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css">
+    <link rel="shortcut icon" href="https://www.guandongfang.cn/favicon.ico">
+    <title>微信支付积分系统 - Swagger UI</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: '/openapi.json',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                // 默认展开级别
+                docExpansion: "list",
+                // 默认选择的服务器
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                // 启用过滤
+                filter: true,
+                // 显示请求持续时间
+                showRequestDuration: true,
+                // 尝试自动完成
+                tryItOutEnabled: true,
+                // 请求拦截器
+                requestInterceptor: (req) => {
+                    // 可以在这里添加自定义请求头
+                    const token = localStorage.getItem('admin_token');
+                    if (token) {
+                        req.headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    return req;
+                },
+                // 响应拦截器
+                responseInterceptor: (res) => {
+                    return res;
+                }
+            });
+            
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html>
+

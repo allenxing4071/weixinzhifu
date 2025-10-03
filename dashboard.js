@@ -92,7 +92,7 @@ function openModule(moduleName) {
         'orders': `${CONFIG.ADMIN_URL}#/orders`,
         'api': './docs/02-技术实现/API接口文档.md',
         'settings': `${CONFIG.ADMIN_URL}#/settings`,
-        'swagger': './api-docs.html',  // 打开独立的API文档页面
+        'swagger': './docs-swagger.html',  // 打开官方Swagger UI文档
         'database': '#database',
         'adminer': 'https://www.adminer.org/'
     };
