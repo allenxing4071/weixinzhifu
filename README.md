@@ -44,12 +44,34 @@
 
 ## 🚀 快速开始
 
+### 🎯 开发者控制台 (NEW!)
+
+一个仿照 Web3 Alpha Hunter 风格的可视化管理面板，提供快速访问系统功能、查看数据、执行命令的统一入口。
+
+```bash
+# 一键启动控制台
+./start-dashboard.sh
+# 访问: http://localhost:8080/dashboard.html
+```
+
+**主要功能**:
+- 📊 核心数据实时展示
+- 🔧 功能模块快速导航
+- 🔌 API地址一键复制
+- ⌨️ 常用命令速查
+- ⚡ 快捷操作按钮
+
+详见: [开发者控制台快速开始](./QUICK_START_DASHBOARD.md)
+
+---
+
 ### 环境要求
 ```
 Node.js >= 18.0.0
 MySQL >= 8.0
 Nginx (生产环境)
 微信开发者工具
+Python 3 (启动控制台)
 ```
 
 ### 克隆项目
@@ -130,6 +152,15 @@ cd frontend/miniprogram
 
 ```
 weixinzhifu/
+├── 🎯 开发者控制台 (NEW!)
+│   ├── dashboard.html                    # ⭐ 控制台主页面
+│   ├── dashboard.css                     # 样式文件
+│   ├── dashboard.js                      # 交互脚本
+│   ├── start-dashboard.sh                # 一键启动脚本
+│   ├── DASHBOARD_README.md               # 功能说明
+│   ├── DASHBOARD_IMPLEMENTATION.md       # 实施总结
+│   └── QUICK_START_DASHBOARD.md          # 快速开始
+│
 ├── docs/                       # 📚 项目文档
 │   ├── 00-项目总览.md         # ⭐ 项目总览（必读）
 │   ├── 01-需求与设计/         # 需求和设计文档
@@ -137,6 +168,7 @@ weixinzhifu/
 │   ├── 03-开发规范/           # 开发规范
 │   ├── 04-部署与运维/         # 部署文档
 │   ├── 05-操作手册/           # 使用指南
+│   │   └── 开发者控制台使用指南.md  # NEW! 控制台详细指南
 │   ├── archive/               # 历史文档归档
 │   └── README.md              # 文档导航
 │
@@ -211,6 +243,8 @@ weixinzhifu/
 
 | 文档类型 | 路径 | 说明 |
 |---------|------|------|
+| **🎯 控制台快速开始** | `QUICK_START_DASHBOARD.md` | ⭐ 开发者控制台5秒启动（NEW!） |
+| **🎯 控制台使用指南** | `docs/05-操作手册/开发者控制台使用指南.md` | 详细功能说明和使用技巧 |
 | **项目总览** | `docs/00-项目总览.md` | ⭐ 快速了解项目（必读） |
 | **需求与设计** | `docs/01-需求与设计/` | 产品需求、API接口、架构设计 |
 | **技术实现** | `docs/02-技术实现/` | 系统架构、支付流程、二维码方案 |
