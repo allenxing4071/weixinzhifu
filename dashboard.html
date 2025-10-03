@@ -116,6 +116,205 @@
                         <div class="module-desc">参数配置与权限管理</div>
                     </div>
                 </div>
+
+                <!-- Swagger文档 -->
+                <div class="module-card swagger-card" onclick="openModule('swagger')">
+                    <div class="module-icon">📋</div>
+                    <div class="module-content">
+                        <div class="module-title">Swagger文档</div>
+                        <div class="module-desc">交互式API文档</div>
+                    </div>
+                </div>
+
+                <!-- 数据库管理 -->
+                <div class="module-card database-card" onclick="openModule('database')">
+                    <div class="module-icon">🗄️</div>
+                    <div class="module-content">
+                        <div class="module-title">数据库管理</div>
+                        <div class="module-desc">查看表结构和数据</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据库管理详情 -->
+        <section class="database-detail-section">
+            <h2 class="section-title">🗄️ 数据库管理</h2>
+            
+            <!-- 数据库统计 -->
+            <div class="db-stats-grid">
+                <div class="db-stat-card">
+                    <div class="db-stat-number">8</div>
+                    <div class="db-stat-label">数据表</div>
+                </div>
+                <div class="db-stat-card">
+                    <div class="db-stat-number">MySQL 8.0</div>
+                    <div class="db-stat-label">数据库类型</div>
+                </div>
+                <div class="db-stat-card">
+                    <div class="db-stat-number">weixin_payment</div>
+                    <div class="db-stat-label">数据库名称</div>
+                </div>
+            </div>
+
+            <!-- 数据表列表 -->
+            <div class="db-tables-section">
+                <h3 class="subsection-title">📊 数据表结构</h3>
+                <div class="tabs db-tabs">
+                    <button class="tab-btn active" onclick="switchDbTab('users')">👥 users (用户表)</button>
+                    <button class="tab-btn" onclick="switchDbTab('merchants')">🏪 merchants (商户表)</button>
+                    <button class="tab-btn" onclick="switchDbTab('orders')">📦 payment_orders (订单表)</button>
+                    <button class="tab-btn" onclick="switchDbTab('points')">⭐ user_points (积分表)</button>
+                </div>
+
+                <!-- users表 -->
+                <div class="db-tab-content active" id="users-db-tab">
+                    <div class="table-info-card">
+                        <div class="table-name">👥 users - 用户表</div>
+                        <div class="table-desc">存储用户基本信息、微信信息</div>
+                        <div class="fields-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>字段名</th>
+                                        <th>类型</th>
+                                        <th>可空</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>id</td><td>INT</td><td class="not-null">NOT NULL</td><td>主键</td></tr>
+                                    <tr><td>openid</td><td>VARCHAR(100)</td><td class="not-null">NOT NULL</td><td>微信OpenID</td></tr>
+                                    <tr><td>unionid</td><td>VARCHAR(100)</td><td class="nullable">NULL</td><td>微信UnionID</td></tr>
+                                    <tr><td>nickname</td><td>VARCHAR(100)</td><td class="nullable">NULL</td><td>昵称</td></tr>
+                                    <tr><td>avatar</td><td>VARCHAR(255)</td><td class="nullable">NULL</td><td>头像URL</td></tr>
+                                    <tr><td>phone</td><td>VARCHAR(20)</td><td class="nullable">NULL</td><td>手机号</td></tr>
+                                    <tr><td>status</td><td>VARCHAR(20)</td><td class="not-null">NOT NULL</td><td>状态 (active/locked/banned)</td></tr>
+                                    <tr><td>created_at</td><td>TIMESTAMP</td><td class="not-null">NOT NULL</td><td>创建时间</td></tr>
+                                    <tr><td>updated_at</td><td>TIMESTAMP</td><td class="not-null">NOT NULL</td><td>更新时间</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- merchants表 -->
+                <div class="db-tab-content" id="merchants-db-tab">
+                    <div class="table-info-card">
+                        <div class="table-name">🏪 merchants - 商户表</div>
+                        <div class="table-desc">存储商户信息、微信支付配置</div>
+                        <div class="fields-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>字段名</th>
+                                        <th>类型</th>
+                                        <th>可空</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>id</td><td>INT</td><td class="not-null">NOT NULL</td><td>主键</td></tr>
+                                    <tr><td>merchant_name</td><td>VARCHAR(100)</td><td class="not-null">NOT NULL</td><td>商户名称</td></tr>
+                                    <tr><td>merchant_no</td><td>VARCHAR(50)</td><td class="not-null">NOT NULL</td><td>商户编号</td></tr>
+                                    <tr><td>contact_person</td><td>VARCHAR(50)</td><td class="nullable">NULL</td><td>联系人</td></tr>
+                                    <tr><td>contact_phone</td><td>VARCHAR(20)</td><td class="nullable">NULL</td><td>联系电话</td></tr>
+                                    <tr><td>business_license</td><td>VARCHAR(50)</td><td class="nullable">NULL</td><td>营业执照号</td></tr>
+                                    <tr><td>business_category</td><td>VARCHAR(50)</td><td class="nullable">NULL</td><td>业务类别</td></tr>
+                                    <tr><td>status</td><td>VARCHAR(20)</td><td class="not-null">NOT NULL</td><td>状态 (active/inactive/pending)</td></tr>
+                                    <tr><td>qr_code</td><td>TEXT</td><td class="nullable">NULL</td><td>二维码数据</td></tr>
+                                    <tr><td>created_at</td><td>TIMESTAMP</td><td class="not-null">NOT NULL</td><td>创建时间</td></tr>
+                                    <tr><td>updated_at</td><td>TIMESTAMP</td><td class="not-null">NOT NULL</td><td>更新时间</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- payment_orders表 -->
+                <div class="db-tab-content" id="orders-db-tab">
+                    <div class="table-info-card">
+                        <div class="table-name">📦 payment_orders - 支付订单表</div>
+                        <div class="table-desc">存储支付订单、积分赠送记录</div>
+                        <div class="fields-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>字段名</th>
+                                        <th>类型</th>
+                                        <th>可空</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>id</td><td>INT</td><td class="not-null">NOT NULL</td><td>主键</td></tr>
+                                    <tr><td>order_no</td><td>VARCHAR(50)</td><td class="not-null">NOT NULL</td><td>订单号</td></tr>
+                                    <tr><td>user_id</td><td>INT</td><td class="not-null">NOT NULL</td><td>用户ID</td></tr>
+                                    <tr><td>merchant_id</td><td>INT</td><td class="not-null">NOT NULL</td><td>商户ID</td></tr>
+                                    <tr><td>merchant_name</td><td>VARCHAR(100)</td><td class="nullable">NULL</td><td>商户名称</td></tr>
+                                    <tr><td>amount</td><td>DECIMAL(10,2)</td><td class="not-null">NOT NULL</td><td>支付金额(分)</td></tr>
+                                    <tr><td>points_awarded</td><td>INT</td><td class="not-null">NOT NULL</td><td>赠送积分</td></tr>
+                                    <tr><td>status</td><td>VARCHAR(20)</td><td class="not-null">NOT NULL</td><td>状态 (pending/paid/cancelled)</td></tr>
+                                    <tr><td>transaction_id</td><td>VARCHAR(100)</td><td class="nullable">NULL</td><td>微信交易号</td></tr>
+                                    <tr><td>paid_at</td><td>TIMESTAMP</td><td class="nullable">NULL</td><td>支付时间</td></tr>
+                                    <tr><td>created_at</td><td>TIMESTAMP</td><td class="not-null">NOT NULL</td><td>创建时间</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- user_points表 -->
+                <div class="db-tab-content" id="points-db-tab">
+                    <div class="table-info-card">
+                        <div class="table-name">⭐ user_points - 用户积分表</div>
+                        <div class="table-desc">存储用户积分余额信息</div>
+                        <div class="fields-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>字段名</th>
+                                        <th>类型</th>
+                                        <th>可空</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>id</td><td>INT</td><td class="not-null">NOT NULL</td><td>主键</td></tr>
+                                    <tr><td>user_id</td><td>INT</td><td class="not-null">NOT NULL</td><td>用户ID</td></tr>
+                                    <tr><td>available_points</td><td>INT</td><td class="not-null">NOT NULL</td><td>可用积分</td></tr>
+                                    <tr><td>frozen_points</td><td>INT</td><td class="not-null">NOT NULL</td><td>冻结积分</td></tr>
+                                    <tr><td>total_earned</td><td>INT</td><td class="not-null">NOT NULL</td><td>累计获得</td></tr>
+                                    <tr><td>total_spent</td><td>INT</td><td class="not-null">NOT NULL</td><td>累计消费</td></tr>
+                                    <tr><td>updated_at</td><td>TIMESTAMP</td><td class="not-null">NOT NULL</td><td>更新时间</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="db-quick-actions">
+                <h3 class="subsection-title">⚡ 数据库操作</h3>
+                <div class="db-actions-grid">
+                    <button class="db-action-btn" onclick="copyCommand('mysql -u root -p weixin_payment')">
+                        <span class="btn-icon">🔗</span>
+                        <span class="btn-text">连接数据库</span>
+                    </button>
+                    <button class="db-action-btn" onclick="copyCommand('mysqldump -u root -p weixin_payment > backup_$(date +%Y%m%d).sql')">
+                        <span class="btn-icon">💾</span>
+                        <span class="btn-text">备份数据库</span>
+                    </button>
+                    <button class="db-action-btn" onclick="copyCommand('SHOW TABLES;')">
+                        <span class="btn-icon">📋</span>
+                        <span class="btn-text">查看所有表</span>
+                    </button>
+                    <button class="db-action-btn" onclick="openModule('adminer')">
+                        <span class="btn-icon">🌐</span>
+                        <span class="btn-text">打开Adminer</span>
+                    </button>
+                </div>
             </div>
         </section>
 

@@ -451,6 +451,189 @@ section {
     opacity: 0.9;
 }
 
+/* 数据库管理区域 */
+.database-detail-section {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+}
+
+.db-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.db-stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    text-align: center;
+    color: white;
+}
+
+.db-stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.db-stat-label {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.db-tables-section {
+    margin-bottom: 24px;
+}
+
+.subsection-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.db-tabs {
+    margin-bottom: 20px;
+}
+
+.db-tab-content {
+    display: none;
+}
+
+.db-tab-content.active {
+    display: block;
+}
+
+.table-info-card {
+    background: var(--bg-hover);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.table-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.table-desc {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.fields-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.fields-table thead {
+    background: var(--primary-color);
+    color: white;
+}
+
+.fields-table th,
+.fields-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.fields-table th {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.fields-table td {
+    font-size: 13px;
+}
+
+.fields-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.fields-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.not-null {
+    color: var(--error-color);
+    font-weight: 600;
+}
+
+.nullable {
+    color: var(--success-color);
+}
+
+/* 数据库操作按钮 */
+.db-quick-actions {
+    margin-top: 24px;
+}
+
+.db-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.db-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.db-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.db-action-btn .btn-icon {
+    font-size: 20px;
+}
+
+.db-action-btn .btn-text {
+    font-weight: 500;
+}
+
+/* 特殊卡片样式 */
+.swagger-card {
+    border: 2px solid #85c1e9;
+    background: linear-gradient(135deg, #e8f4f8 0%, #d4e9f7 100%);
+}
+
+.swagger-card:hover {
+    border-color: #3498db;
+}
+
+.database-card {
+    border: 2px solid #d7bde2;
+    background: linear-gradient(135deg, #f4ecf7 0%, #e8daef 100%);
+}
+
+.database-card:hover {
+    border-color: #9b59b6;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     body {
@@ -465,11 +648,18 @@ section {
     .stats-grid,
     .modules-grid,
     .api-grid,
-    .shortcuts-grid {
+    .shortcuts-grid,
+    .db-stats-grid,
+    .db-actions-grid {
         grid-template-columns: 1fr;
     }
     
-    .tabs {
+    .tabs,
+    .db-tabs {
+        overflow-x: auto;
+    }
+    
+    .fields-table {
         overflow-x: auto;
     }
 }

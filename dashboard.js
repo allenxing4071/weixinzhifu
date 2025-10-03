@@ -91,13 +91,22 @@ function openModule(moduleName) {
         'points': `${CONFIG.ADMIN_URL}#/points`,
         'orders': `${CONFIG.ADMIN_URL}#/orders`,
         'api': './docs/02-技术实现/API接口文档.md',
-        'settings': `${CONFIG.ADMIN_URL}#/settings`
+        'settings': `${CONFIG.ADMIN_URL}#/settings`,
+        'swagger': `${CONFIG.API_BASE_URL}/api-docs`,
+        'database': '#database',
+        'adminer': 'https://www.adminer.org/'
     };
     
     const url = moduleUrls[moduleName];
     if (url) {
-        window.open(url, '_blank');
-        showNotification(`正在打开 ${getModuleName(moduleName)}...`, 'info');
+        if (moduleName === 'database') {
+            // 滚动到数据库管理区域
+            document.querySelector('.database-detail-section').scrollIntoView({ behavior: 'smooth' });
+            showNotification('已定位到数据库管理区域', 'success');
+        } else {
+            window.open(url, '_blank');
+            showNotification(`正在打开 ${getModuleName(moduleName)}...`, 'info');
+        }
     }
 }
 
@@ -108,9 +117,45 @@ function getModuleName(moduleName) {
         'points': '积分管理',
         'orders': '订单管理',
         'api': 'API文档',
-        'settings': '系统设置'
+        'settings': '系统设置',
+        'swagger': 'Swagger文档',
+        'database': '数据库管理',
+        'adminer': 'Adminer数据库工具'
     };
     return names[moduleName] || moduleName;
+}
+
+// ==================== 数据库Tab切换 ====================
+
+function switchDbTab(tabName) {
+    // 隐藏所有数据库tab内容
+    const allDbTabs = document.querySelectorAll('.db-tab-content');
+    allDbTabs.forEach(tab => tab.classList.remove('active'));
+    
+    // 移除所有按钮的active状态
+    const allDbButtons = document.querySelectorAll('.db-tabs .tab-btn');
+    allDbButtons.forEach(btn => btn.classList.remove('active'));
+    
+    // 显示选中的tab
+    const selectedTab = document.getElementById(`${tabName}-db-tab`);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    // 激活对应的按钮
+    event.target.classList.add('active');
+    
+    showNotification(`正在查看 ${getDbTableName(tabName)} 表结构`, 'info');
+}
+
+function getDbTableName(tabName) {
+    const names = {
+        'users': 'users (用户表)',
+        'merchants': 'merchants (商户表)',
+        'orders': 'payment_orders (订单表)',
+        'points': 'user_points (积分表)'
+    };
+    return names[tabName] || tabName;
 }
 
 // ==================== 复制功能 ====================
