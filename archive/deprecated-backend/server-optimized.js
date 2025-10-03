@@ -119,6 +119,7 @@ const ordersRoutes = require('./routes/orders');
 const pointsRoutes = require('./routes/points');
 const paymentsRoutes = require('./routes/payments');
 const adminUsersRoutes = require('./routes/admin-users');
+const databaseRoutes = require('./routes/database');
 
 // 挂载认证路由（无需Token）
 app.use('/api/v1/auth', authRoutes);
@@ -130,6 +131,7 @@ app.use('/api/v1/admin/merchants', authenticateToken, merchantsRoutes);
 app.use('/api/v1/admin/orders', authenticateToken, ordersRoutes);
 app.use('/api/v1/admin/admin-users', authenticateToken, adminUsersRoutes); // 路由内部已有requireAdmin中间件
 app.use('/api/v1/admin/points', authenticateToken, pointsRoutes); // 管理后台积分管理
+app.use('/api/v1/admin/database', authenticateToken, databaseRoutes); // 数据库管理(新增)
 app.use('/api/v1/payments', authenticateToken, paymentsRoutes);
 
 // ==================== 404处理 ====================
