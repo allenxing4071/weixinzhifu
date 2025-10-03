@@ -1750,6 +1750,220 @@ app.post('/api/v1/admin/admin-users/:id/reset-password', async (req, res) => {
   }
 });
 
+// =====================
+// 数据库管理API (新增)
+// =====================
+
+// 获取数据库统计信息
+app.get('/api/v1/admin/database/stats', async (req, res) => {
+  try {
+    if (!dbConnection) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    // 获取数据库名称
+    const [[dbInfo]] = await dbConnection.query('SELECT DATABASE() as db_name');
+    const dbName = dbInfo.db_name;
+
+    // 获取表数量
+    const [tables] = await dbConnection.query('SHOW TABLES');
+    const tableCount = tables.length;
+
+    // 获取总行数
+    let totalRows = 0;
+    for (const table of tables) {
+      const tableName = Object.values(table)[0];
+      const [[countResult]] = await dbConnection.query(`SELECT COUNT(*) as count FROM \`${tableName}\``);
+      totalRows += countResult.count;
+    }
+
+    // 获取数据库大小
+    const [[sizeInfo]] = await dbConnection.query(
+      `SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb 
+       FROM information_schema.tables 
+       WHERE table_schema = ?`,
+      [dbName]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        database: dbName,
+        tableCount: tableCount,
+        totalRows: totalRows,
+        size: `${sizeInfo.size_mb || 0} MB`
+      }
+    });
+  } catch (error) {
+    console.error('获取数据库统计失败:', error);
+    res.status(500).json({ success: false, message: '获取数据库统计失败', error: error.message });
+  }
+});
+
+// 获取所有数据表列表
+app.get('/api/v1/admin/database/tables', async (req, res) => {
+  try {
+    if (!dbConnection) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const [tables] = await dbConnection.query('SHOW TABLE STATUS');
+    
+    const tableList = await Promise.all(tables.map(async (table) => {
+      // 获取表的行数和大小
+      return {
+        name: table.Name,
+        rowCount: table.Rows || 0,
+        size: `${((table.Data_length + table.Index_length) / 1024).toFixed(2)} KB`,
+        createdAt: table.Create_time,
+        updatedAt: table.Update_time,
+        comment: table.Comment || ''
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: { tables: tableList }
+    });
+  } catch (error) {
+    console.error('获取表列表失败:', error);
+    res.status(500).json({ success: false, message: '获取表列表失败', error: error.message });
+  }
+});
+
+// 获取指定表的结构
+app.get('/api/v1/admin/database/tables/:tableName/schema', async (req, res) => {
+  try {
+    if (!dbConnection) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const { tableName } = req.params;
+
+    // 获取表结构
+    const [columns] = await dbConnection.query(`DESCRIBE \`${tableName}\``);
+    
+    // 获取索引信息
+    const [indexes] = await dbConnection.query(`SHOW INDEX FROM \`${tableName}\``);
+
+    const formattedColumns = columns.map(col => ({
+      name: col.Field,
+      type: col.Type,
+      nullable: col.Null === 'YES',
+      key: col.Key,
+      default: col.Default,
+      extra: col.Extra,
+      comment: '' // MySQL DESCRIBE 不返回注释
+    }));
+
+    const formattedIndexes = indexes.map(idx => ({
+      name: idx.Key_name,
+      column: idx.Column_name,
+      unique: idx.Non_unique === 0,
+      type: idx.Index_type
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        tableName: tableName,
+        columns: formattedColumns,
+        indexes: formattedIndexes
+      }
+    });
+  } catch (error) {
+    console.error('获取表结构失败:', error);
+    res.status(500).json({ success: false, message: '获取表结构失败', error: error.message });
+  }
+});
+
+// 获取指定表的数据
+app.get('/api/v1/admin/database/tables/:tableName/data', async (req, res) => {
+  try {
+    if (!dbConnection) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const { tableName } = req.params;
+    const { page = 1, pageSize = 20, sortBy, sortOrder = 'DESC' } = req.query;
+
+    const offset = (parseInt(page) - 1) * parseInt(pageSize);
+    const limit = parseInt(pageSize);
+
+    // 构建排序语句
+    let orderClause = '';
+    if (sortBy) {
+      orderClause = `ORDER BY \`${sortBy}\` ${sortOrder === 'ASC' ? 'ASC' : 'DESC'}`;
+    }
+
+    // 获取数据
+    const [rows] = await dbConnection.query(
+      `SELECT * FROM \`${tableName}\` ${orderClause} LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+
+    // 获取总数
+    const [[countResult]] = await dbConnection.query(`SELECT COUNT(*) as total FROM \`${tableName}\``);
+    const total = countResult.total;
+
+    res.json({
+      success: true,
+      data: {
+        rows: rows,
+        pagination: {
+          page: parseInt(page),
+          pageSize: limit,
+          total: total,
+          totalPages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('获取表数据失败:', error);
+    res.status(500).json({ success: false, message: '获取表数据失败', error: error.message });
+  }
+});
+
+// 执行SQL查询 (危险操作,仅限只读查询)
+app.post('/api/v1/admin/database/query', async (req, res) => {
+  try {
+    if (!dbConnection) {
+      return res.status(503).json({ success: false, message: '数据库未连接' });
+    }
+
+    const { sql } = req.body;
+
+    if (!sql || typeof sql !== 'string') {
+      return res.status(400).json({ success: false, message: 'SQL语句不能为空' });
+    }
+
+    // 安全检查：只允许SELECT查询
+    const trimmedSQL = sql.trim().toUpperCase();
+    if (!trimmedSQL.startsWith('SELECT') && !trimmedSQL.startsWith('SHOW') && !trimmedSQL.startsWith('DESCRIBE')) {
+      return res.status(403).json({ 
+        success: false, 
+        message: '仅允许SELECT、SHOW、DESCRIBE查询，不允许修改数据' 
+      });
+    }
+
+    const startTime = Date.now();
+    const [rows] = await dbConnection.query(sql);
+    const executionTime = `${Date.now() - startTime}ms`;
+
+    res.json({
+      success: true,
+      data: {
+        rows: rows,
+        rowCount: rows.length,
+        executionTime: executionTime
+      }
+    });
+  } catch (error) {
+    console.error('执行SQL查询失败:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 启动服务
 async function startServer() {
   try {
