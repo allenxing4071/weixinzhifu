@@ -2,7 +2,7 @@
 
 // 配置
 const CONFIG = {
-    API_BASE_URL: '/api/v1',
+    API_BASE_URL: 'https://www.guandongfang.cn/api/v1',  // 使用生产环境API
     AUTO_REFRESH_INTERVAL: 30000, // 30秒自动刷新
     REFRESH_ON_FOCUS: true, // 窗口获得焦点时刷新
 };
@@ -68,7 +68,7 @@ async function apiRequest(endpoint, options = {}) {
 
 async function loadDatabaseStats() {
     try {
-        const result = await apiRequest('/database/stats');
+        const result = await apiRequest('/admin/database/stats');
         if (result.success) {
             document.getElementById('dbName').textContent = result.data.database;
             document.getElementById('tableCount').textContent = result.data.tableCount;
@@ -84,7 +84,7 @@ async function loadDatabaseStats() {
 
 async function loadTables() {
     try {
-        const result = await apiRequest('/database/tables');
+        const result = await apiRequest('/admin/database/tables');
         if (result.success) {
             state.tables = result.data.tables;
             renderTablesList(state.tables);
@@ -97,7 +97,7 @@ async function loadTables() {
 
 async function loadTableSchema(tableName) {
     try {
-        const result = await apiRequest(`/database/tables/${tableName}/schema`);
+        const result = await apiRequest(`/admin/database/tables/${tableName}/schema`);
         if (result.success) {
             renderTableSchema(result.data);
             
@@ -126,7 +126,7 @@ async function loadTableData(tableName, page = 1) {
             params.append('sortOrder', state.sortOrder);
         }
         
-        const result = await apiRequest(`/database/tables/${tableName}/data?${params}`);
+        const result = await apiRequest(`/admin/database/tables/${tableName}/data?${params}`);
         if (result.success) {
             renderTableData(result.data);
         }
@@ -402,7 +402,7 @@ async function executeSQL() {
     }
     
     try {
-        const result = await apiRequest('/database/query', {
+        const result = await apiRequest('/admin/database/query', {
             method: 'POST',
             body: JSON.stringify({ sql }),
         });
