@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信支付积分系统 - 开发者控制台</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部区域 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🎯 微信支付积分系统</h1>
+                    <p class="subtitle">A现场空闲时管理系统重要数据、快速执行开发和部署任务的仪表盘</p>
+                </div>
+                <div class="header-right">
+                    <div class="version-badge">
+                        <span class="label">版本:</span>
+                        <span class="value" id="version">v1.0.0</span>
+                    </div>
+                    <div class="status-badge">
+                        <span class="label">环境:</span>
+                        <span class="value production" id="environment">Production</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 核心数据统计区 -->
+        <section class="stats-section">
+            <h2 class="section-title">📊 核心数据</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon user-icon">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-label">有消费用户</div>
+                        <div class="stat-value" id="totalUsers">8000</div>
+                        <div class="stat-meta">累计注册</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon merchant-icon">🏪</div>
+                    <div class="stat-content">
+                        <div class="stat-label">活跃商户</div>
+                        <div class="stat-value" id="activeMerchants">3000</div>
+                        <div class="stat-meta">入驻商家</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon version-icon">📦</div>
+                    <div class="stat-content">
+                        <div class="stat-label">项目版本</div>
+                        <div class="stat-value" id="projectVersion">v1.0.0</div>
+                        <div class="stat-meta">Development</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 功能模块导航 -->
+        <section class="modules-section">
+            <h2 class="section-title">🔧 功能模块</h2>
+            <div class="modules-grid">
+                <!-- 用户管理 -->
+                <div class="module-card" onclick="openModule('users')">
+                    <div class="module-icon">👥</div>
+                    <div class="module-content">
+                        <div class="module-title">用户</div>
+                        <div class="module-desc">用户数据查询与管理</div>
+                    </div>
+                </div>
+                
+                <!-- 商户管理 -->
+                <div class="module-card" onclick="openModule('merchants')">
+                    <div class="module-icon">🏪</div>
+                    <div class="module-content">
+                        <div class="module-title">商户管理</div>
+                        <div class="module-desc">商户资质审核与管理</div>
+                    </div>
+                </div>
+
+                <!-- 积分管理 -->
+                <div class="module-card" onclick="openModule('points')">
+                    <div class="module-icon">⭐</div>
+                    <div class="module-content">
+                        <div class="module-title">积分管理</div>
+                        <div class="module-desc">积分配置与记录查询</div>
+                    </div>
+                </div>
+
+                <!-- 订单管理 -->
+                <div class="module-card" onclick="openModule('orders')">
+                    <div class="module-icon">📦</div>
+                    <div class="module-content">
+                        <div class="module-title">订单管理</div>
+                        <div class="module-desc">支付订单查询与统计</div>
+                    </div>
+                </div>
+
+                <!-- API文档 -->
+                <div class="module-card" onclick="openModule('api')">
+                    <div class="module-icon">🔌</div>
+                    <div class="module-content">
+                        <div class="module-title">API文档</div>
+                        <div class="module-desc">后端API接口说明</div>
+                    </div>
+                </div>
+
+                <!-- 系统设置 -->
+                <div class="module-card" onclick="openModule('settings')">
+                    <div class="module-icon">⚙️</div>
+                    <div class="module-content">
+                        <div class="module-title">系统设置</div>
+                        <div class="module-desc">参数配置与权限管理</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 后端API快速访问 -->
+        <section class="api-section">
+            <h2 class="section-title">🔌 后端API</h2>
+            <div class="api-grid">
+                <!-- 管理后台 -->
+                <div class="api-card">
+                    <div class="api-header">
+                        <div class="api-icon">🏠</div>
+                        <div class="api-title">管理后台</div>
+                    </div>
+                    <div class="api-url">
+                        <input type="text" value="https://www.guandongfang.cn/admin/" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('https://www.guandongfang.cn/admin/')">复制</button>
+                    </div>
+                </div>
+
+                <!-- 数据统计 -->
+                <div class="api-card">
+                    <div class="api-header">
+                        <div class="api-icon">📊</div>
+                        <div class="api-title">数据统计</div>
+                    </div>
+                    <div class="api-url">
+                        <input type="text" value="https://www.guandongfang.cn/api/v1/admin/dashboard/stats" readonly>
+                        <button class="copy-btn" onclick="copyToClipboard('https://www.guandongfang.cn/api/v1/admin/dashboard/stats')">复制</button>
+                    </div>
+                </div>
+
+                <!-- RedisORM -->
+                <div class="api-card">
+                    <div class="api-header">
+                        <div class="api-icon">🗄️</div>
+                        <div class="api-title">RedisORM</div>
+                    </div>
+                    <div class="api-url">
+                        <input type="text" value="查看服务端API文档" readonly>
+                        <button class="copy-btn" onclick="openApiDocs()">查看文档</button>
+                    </div>
+                </div>
+
+                <!-- Celery任务 -->
+                <div class="api-card">
+                    <div class="api-header">
+                        <div class="api-icon">⚡</div>
+                        <div class="api-title">数据同步任务</div>
+                    </div>
+                    <div class="api-url">
+                        <input type="text" value="查看异步任务执行情况" readonly>
+                        <button class="copy-btn" onclick="checkTasks()">检查状态</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SSH登录信息 -->
+        <section class="ssh-section">
+            <h2 class="section-title">👨‍💻 服务器登录</h2>
+            <div class="ssh-card">
+                <div class="ssh-info">
+                    <div class="info-row">
+                        <span class="info-label">服务器IP:</span>
+                        <code id="serverIp">8.156.84.226</code>
+                        <button class="copy-btn-small" onclick="copyToClipboard('8.156.84.226')">复制</button>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">SSH命令:</span>
+                        <code id="sshCommand">ssh -i config/ssh/weixinpay.pem root@8.156.84.226</code>
+                        <button class="copy-btn-small" onclick="copyToClipboard('ssh -i config/ssh/weixinpay.pem root@8.156.84.226')">复制</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 常用命令 -->
+        <section class="commands-section">
+            <h2 class="section-title">⌨️ 常用命令</h2>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('database')">数据库操作</button>
+                <button class="tab-btn" onclick="switchTab('logs')">日志查看</button>
+                <button class="tab-btn" onclick="switchTab('process')">进程管理</button>
+                <button class="tab-btn" onclick="switchTab('nginx')">Nginx操作</button>
+            </div>
+
+            <!-- 数据库操作 -->
+            <div class="tab-content active" id="database-tab">
+                <div class="command-group">
+                    <h3>数据库备份</h3>
+                    <div class="command-item">
+                        <code># 备份MySQL数据库</code>
+                        <pre>mysqldump -u root -p weixin_payment > backup_$(date +%Y%m%d).sql</pre>
+                        <button class="copy-btn" onclick="copyCommand('mysqldump -u root -p weixin_payment > backup_$(date +%Y%m%d).sql')">复制</button>
+                    </div>
+                </div>
+                <div class="command-group">
+                    <h3>数据库连接</h3>
+                    <div class="command-item">
+                        <code># 登录MySQL</code>
+                        <pre>mysql -u root -p weixin_payment</pre>
+                        <button class="copy-btn" onclick="copyCommand('mysql -u root -p weixin_payment')">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日志查看 -->
+            <div class="tab-content" id="logs-tab">
+                <div class="command-group">
+                    <h3>PM2日志</h3>
+                    <div class="command-item">
+                        <code># 查看所有应用日志</code>
+                        <pre>pm2 logs</pre>
+                        <button class="copy-btn" onclick="copyCommand('pm2 logs')">复制</button>
+                    </div>
+                    <div class="command-item">
+                        <code># 查看特定应用日志</code>
+                        <pre>pm2 logs payment-api</pre>
+                        <button class="copy-btn" onclick="copyCommand('pm2 logs payment-api')">复制</button>
+                    </div>
+                </div>
+                <div class="command-group">
+                    <h3>Nginx日志</h3>
+                    <div class="command-item">
+                        <code># 查看访问日志</code>
+                        <pre>tail -f /var/log/nginx/access.log</pre>
+                        <button class="copy-btn" onclick="copyCommand('tail -f /var/log/nginx/access.log')">复制</button>
+                    </div>
+                    <div class="command-item">
+                        <code># 查看错误日志</code>
+                        <pre>tail -f /var/log/nginx/error.log</pre>
+                        <button class="copy-btn" onclick="copyCommand('tail -f /var/log/nginx/error.log')">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进程管理 -->
+            <div class="tab-content" id="process-tab">
+                <div class="command-group">
+                    <h3>PM2进程管理</h3>
+                    <div class="command-item">
+                        <code># 查看所有进程</code>
+                        <pre>pm2 list</pre>
+                        <button class="copy-btn" onclick="copyCommand('pm2 list')">复制</button>
+                    </div>
+                    <div class="command-item">
+                        <code># 重启应用</code>
+                        <pre>pm2 restart payment-api</pre>
+                        <button class="copy-btn" onclick="copyCommand('pm2 restart payment-api')">复制</button>
+                    </div>
+                    <div class="command-item">
+                        <code># 停止应用</code>
+                        <pre>pm2 stop payment-api</pre>
+                        <button class="copy-btn" onclick="copyCommand('pm2 stop payment-api')">复制</button>
+                    </div>
+                    <div class="command-item">
+                        <code># 查看应用详情</code>
+                        <pre>pm2 show payment-api</pre>
+                        <button class="copy-btn" onclick="copyCommand('pm2 show payment-api')">复制</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nginx操作 -->
+            <div class="tab-content" id="nginx-tab">
+                <div class="command-group">
+                    <h3>Nginx服务管理</h3>
+                    <div class="command-item">
+                        <code># 测试配置文件</code>
+                        <pre>nginx -t</pre>
+                        <button class="copy-btn" onclick="copyCommand('nginx -t')">复制</button>
+                    </div>
+                    <div class="command-item">
+                        <code># 重载配置</code>
+                        <pre>nginx -s reload</pre>
+                        <button class="copy-btn" onclick="copyCommand('nginx -s reload')">复制</button>
+                    </div>
+                    <div class="command-item">
+                        <code># 重启Nginx</code>
+                        <pre>systemctl restart nginx</pre>
+                        <button class="copy-btn" onclick="copyCommand('systemctl restart nginx')">复制</button>
+                    </div>
+                    <div class="command-item">
+                        <code># 查看Nginx状态</code>
+                        <pre>systemctl status nginx</pre>
+                        <button class="copy-btn" onclick="copyCommand('systemctl status nginx')">复制</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 快捷操作 -->
+        <section class="shortcuts-section">
+            <h2 class="section-title">⚡ 快捷操作</h2>
+            <div class="shortcuts-grid">
+                <div class="shortcut-card" onclick="executeDeploy()">
+                    <div class="shortcut-icon">🚀</div>
+                    <div class="shortcut-title">部署管理后台</div>
+                    <div class="shortcut-desc">运行deploy-admin-complete.sh</div>
+                </div>
+                <div class="shortcut-card" onclick="executeBackendDeploy()">
+                    <div class="shortcut-icon">⚙️</div>
+                    <div class="shortcut-title">部署后端服务</div>
+                    <div class="shortcut-desc">运行deploy-backend-complete.sh</div>
+                </div>
+                <div class="shortcut-card" onclick="runTests()">
+                    <div class="shortcut-icon">🧪</div>
+                    <div class="shortcut-title">运行测试</div>
+                    <div class="shortcut-desc">执行Playwright测试套件</div>
+                </div>
+                <div class="shortcut-card" onclick="cleanupProject()">
+                    <div class="shortcut-icon">🧹</div>
+                    <div class="shortcut-title">项目清理</div>
+                    <div class="shortcut-desc">清理临时文件和日志</div>
+                </div>
+                <div class="shortcut-card" onclick="viewDocs()">
+                    <div class="shortcut-icon">📚</div>
+                    <div class="shortcut-title">查看文档</div>
+                    <div class="shortcut-desc">打开项目文档</div>
+                </div>
+                <div class="shortcut-card" onclick="checkStatus()">
+                    <div class="shortcut-icon">🔍</div>
+                    <div class="shortcut-title">系统状态</div>
+                    <div class="shortcut-desc">查看服务运行状态</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
+
