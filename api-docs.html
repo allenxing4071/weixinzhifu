@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信支付积分系统 API 文档</title>
+    <link rel="stylesheet" href="api-docs.css">
+</head>
+<body>
+    <div class="api-container">
+        <!-- 头部 -->
+        <header class="api-header">
+            <div class="header-content">
+                <h1>微信支付积分系统 API</h1>
+                <div class="version-badges">
+                    <span class="badge version">1.0.0</span>
+                    <span class="badge oas">OAS 3.1</span>
+                </div>
+            </div>
+            <p class="api-description">微信支付积分系统的后端API接口文档与分析平台</p>
+            <div class="base-url">
+                <span class="label">Base URL:</span>
+                <code>https://www.guandongfang.cn/api/v1</code>
+            </div>
+        </header>
+
+        <!-- API分组列表 -->
+        <div class="api-content">
+            
+            <!-- 用户管理 -->
+            <section class="api-group">
+                <div class="group-header" onclick="toggleGroup('users')">
+                    <h2>users</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="group-content" id="users-group">
+                    <!-- 获取用户列表 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('users-list')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge get">GET</span>
+                                <span class="endpoint-path">/api/v1/admin/users</span>
+                                <span class="endpoint-desc">获取用户列表</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="users-list-details">
+                            <div class="detail-section">
+                                <h4>请求参数</h4>
+                                <table class="params-table">
+                                    <thead>
+                                        <tr>
+                                            <th>参数名</th>
+                                            <th>类型</th>
+                                            <th>必填</th>
+                                            <th>说明</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>page</td>
+                                            <td>integer</td>
+                                            <td>否</td>
+                                            <td>页码，默认1</td>
+                                        </tr>
+                                        <tr>
+                                            <td>pageSize</td>
+                                            <td>integer</td>
+                                            <td>否</td>
+                                            <td>每页数量，默认20</td>
+                                        </tr>
+                                        <tr>
+                                            <td>keyword</td>
+                                            <td>string</td>
+                                            <td>否</td>
+                                            <td>搜索关键词</td>
+                                        </tr>
+                                        <tr>
+                                            <td>status</td>
+                                            <td>string</td>
+                                            <td>否</td>
+                                            <td>用户状态: active/locked/banned</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="detail-section">
+                                <h4>响应示例</h4>
+                                <pre class="code-block">{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": 1,
+        "nickname": "张三",
+        "openid": "oxxxxxx",
+        "phone": "138****1234",
+        "pointsBalance": 1000,
+        "status": "active",
+        "createdAt": "2025-01-01T00:00:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 100
+    }
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 获取用户详情 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('users-detail')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge get">GET</span>
+                                <span class="endpoint-path">/api/v1/admin/users/{id}</span>
+                                <span class="endpoint-desc">获取用户详情</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="users-detail-details">
+                            <div class="detail-section">
+                                <h4>路径参数</h4>
+                                <table class="params-table">
+                                    <thead>
+                                        <tr>
+                                            <th>参数名</th>
+                                            <th>类型</th>
+                                            <th>必填</th>
+                                            <th>说明</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>id</td>
+                                            <td>integer</td>
+                                            <td>是</td>
+                                            <td>用户ID</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 更新用户状态 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('users-update-status')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge put">PUT</span>
+                                <span class="endpoint-path">/api/v1/admin/users/{id}/status</span>
+                                <span class="endpoint-desc">更新用户状态</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="users-update-status-details">
+                            <div class="detail-section">
+                                <h4>请求体</h4>
+                                <pre class="code-block">{
+  "status": "locked"  // active/locked/banned
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 商户管理 -->
+            <section class="api-group">
+                <div class="group-header" onclick="toggleGroup('merchants')">
+                    <h2>merchants</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="group-content" id="merchants-group">
+                    <!-- 获取商户列表 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('merchants-list')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge get">GET</span>
+                                <span class="endpoint-path">/api/v1/admin/merchants</span>
+                                <span class="endpoint-desc">获取商户列表</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="merchants-list-details">
+                            <div class="detail-section">
+                                <h4>请求参数</h4>
+                                <table class="params-table">
+                                    <thead>
+                                        <tr>
+                                            <th>参数名</th>
+                                            <th>类型</th>
+                                            <th>必填</th>
+                                            <th>说明</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>page</td>
+                                            <td>integer</td>
+                                            <td>否</td>
+                                            <td>页码</td>
+                                        </tr>
+                                        <tr>
+                                            <td>status</td>
+                                            <td>string</td>
+                                            <td>否</td>
+                                            <td>商户状态: active/inactive/pending</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 创建商户 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('merchants-create')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge post">POST</span>
+                                <span class="endpoint-path">/api/v1/admin/merchants</span>
+                                <span class="endpoint-desc">创建商户</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="merchants-create-details">
+                            <div class="detail-section">
+                                <h4>请求体</h4>
+                                <pre class="code-block">{
+  "merchantName": "测试商户",
+  "merchantNo": "M001",
+  "contactPerson": "张三",
+  "contactPhone": "13800138000",
+  "businessLicense": "91440300XXXXXXXX",
+  "businessCategory": "餐饮"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 订单管理 -->
+            <section class="api-group">
+                <div class="group-header" onclick="toggleGroup('orders')">
+                    <h2>orders</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="group-content" id="orders-group">
+                    <!-- 获取订单列表 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('orders-list')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge get">GET</span>
+                                <span class="endpoint-path">/api/v1/admin/orders</span>
+                                <span class="endpoint-desc">获取订单列表</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="orders-list-details">
+                            <div class="detail-section">
+                                <h4>请求参数</h4>
+                                <table class="params-table">
+                                    <thead>
+                                        <tr>
+                                            <th>参数名</th>
+                                            <th>类型</th>
+                                            <th>必填</th>
+                                            <th>说明</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>status</td>
+                                            <td>string</td>
+                                            <td>否</td>
+                                            <td>订单状态: pending/paid/cancelled</td>
+                                        </tr>
+                                        <tr>
+                                            <td>startDate</td>
+                                            <td>string</td>
+                                            <td>否</td>
+                                            <td>开始日期</td>
+                                        </tr>
+                                        <tr>
+                                            <td>endDate</td>
+                                            <td>string</td>
+                                            <td>否</td>
+                                            <td>结束日期</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 订单退款 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('orders-refund')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge post">POST</span>
+                                <span class="endpoint-path">/api/v1/admin/orders/{id}/refund</span>
+                                <span class="endpoint-desc">订单退款</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="orders-refund-details">
+                            <div class="detail-section">
+                                <h4>请求体</h4>
+                                <pre class="code-block">{
+  "reason": "用户申请退款",
+  "amount": 100.00
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 积分管理 -->
+            <section class="api-group">
+                <div class="group-header" onclick="toggleGroup('points')">
+                    <h2>points</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="group-content" id="points-group">
+                    <!-- 获取积分记录 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('points-records')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge get">GET</span>
+                                <span class="endpoint-path">/api/v1/admin/points/records</span>
+                                <span class="endpoint-desc">获取积分记录</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="points-records-details">
+                            <div class="detail-section">
+                                <h4>请求参数</h4>
+                                <table class="params-table">
+                                    <thead>
+                                        <tr>
+                                            <th>参数名</th>
+                                            <th>类型</th>
+                                            <th>必填</th>
+                                            <th>说明</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>userId</td>
+                                            <td>integer</td>
+                                            <td>否</td>
+                                            <td>用户ID</td>
+                                        </tr>
+                                        <tr>
+                                            <td>source</td>
+                                            <td>string</td>
+                                            <td>否</td>
+                                            <td>积分来源</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 调整积分 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('points-adjust')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge post">POST</span>
+                                <span class="endpoint-path">/api/v1/admin/points/adjust</span>
+                                <span class="endpoint-desc">手动调整积分</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="points-adjust-details">
+                            <div class="detail-section">
+                                <h4>请求体</h4>
+                                <pre class="code-block">{
+  "userId": 1,
+  "points": 100,
+  "type": "add",  // add/subtract
+  "reason": "活动奖励"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 仪表盘 -->
+            <section class="api-group">
+                <div class="group-header" onclick="toggleGroup('dashboard')">
+                    <h2>dashboard</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="group-content" id="dashboard-group">
+                    <!-- 获取统计数据 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('dashboard-stats')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge get">GET</span>
+                                <span class="endpoint-path">/api/v1/admin/dashboard/stats</span>
+                                <span class="endpoint-desc">获取仪表盘统计数据</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="dashboard-stats-details">
+                            <div class="detail-section">
+                                <h4>响应示例</h4>
+                                <pre class="code-block">{
+  "success": true,
+  "data": {
+    "overview": {
+      "totalUsers": 8000,
+      "activeMerchants": 3000,
+      "monthlyRevenue": 50000.00,
+      "monthlyOrders": 1200
+    },
+    "today": {
+      "orders": 50,
+      "revenue": 2000.00,
+      "activeUsers": 200
+    }
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 认证 -->
+            <section class="api-group">
+                <div class="group-header" onclick="toggleGroup('auth')">
+                    <h2>auth</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="group-content" id="auth-group">
+                    <!-- 管理员登录 -->
+                    <div class="api-endpoint">
+                        <div class="endpoint-header" onclick="toggleEndpoint('auth-login')">
+                            <div class="endpoint-summary">
+                                <span class="method-badge post">POST</span>
+                                <span class="endpoint-path">/api/v1/auth/admin/login</span>
+                                <span class="endpoint-desc">管理员登录</span>
+                            </div>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="endpoint-details" id="auth-login-details">
+                            <div class="detail-section">
+                                <h4>请求体</h4>
+                                <pre class="code-block">{
+  "username": "admin",
+  "password": "admin123"
+}</pre>
+                            </div>
+                            <div class="detail-section">
+                                <h4>响应示例</h4>
+                                <pre class="code-block">{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "adminInfo": {
+      "id": 1,
+      "username": "admin",
+      "realName": "管理员",
+      "role": "super_admin"
+    }
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- 返回控制台按钮 -->
+        <div class="back-button-container">
+            <button class="back-button" onclick="window.location.href='dashboard.html'">
+                ← 返回控制台
+            </button>
+        </div>
+    </div>
+
+    <script src="api-docs.js"></script>
+</body>
+</html>
+

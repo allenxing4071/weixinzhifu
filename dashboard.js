@@ -92,7 +92,7 @@ function openModule(moduleName) {
         'orders': `${CONFIG.ADMIN_URL}#/orders`,
         'api': './docs/02-技术实现/API接口文档.md',
         'settings': `${CONFIG.ADMIN_URL}#/settings`,
-        'swagger': '#api-docs-section',  // 改为锚点定位到API文档区
+        'swagger': './api-docs.html',  // 打开独立的API文档页面
         'database': '#database',
         'adminer': 'https://www.adminer.org/'
     };
@@ -103,10 +103,6 @@ function openModule(moduleName) {
             // 滚动到数据库管理区域
             document.querySelector('.database-detail-section').scrollIntoView({ behavior: 'smooth' });
             showNotification('已定位到数据库管理区域', 'success');
-        } else if (moduleName === 'swagger') {
-            // 滚动到API快速访问区域
-            document.querySelector('.api-section').scrollIntoView({ behavior: 'smooth' });
-            showNotification('API文档功能：可查看后端API列表和项目文档', 'info');
         } else {
             window.open(url, '_blank');
             showNotification(`正在打开 ${getModuleName(moduleName)}...`, 'info');
