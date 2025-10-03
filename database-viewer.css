@@ -1,0 +1,613 @@
+/* 数据库查看器样式 */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #3b4151;
+    --accent-color: #5B67F1;
+    --success-color: #52c41a;
+    --warning-color: #faad14;
+    --error-color: #ff4d4f;
+    --bg-primary: #fafafa;
+    --bg-card: #ffffff;
+    --bg-hover: #f5f7fa;
+    --border-color: #e8e8e8;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.db-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* 头部 */
+.db-header {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px 30px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header-left h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.db-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.db-name {
+    font-family: Monaco, monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.db-badge {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.db-badge.mysql {
+    background: #00758f;
+    color: white;
+}
+
+.header-right {
+    display: flex;
+    gap: 10px;
+}
+
+.refresh-btn,
+.back-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.refresh-btn:hover,
+.back-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+/* 统计信息行 */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+/* 主内容区 */
+.db-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* 左侧表列表 */
+.tables-sidebar {
+    width: 280px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-header h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.tables-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.table-item {
+    padding: 12px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.table-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-color);
+}
+
+.table-item.active {
+    background: var(--accent-color);
+    color: white;
+}
+
+.table-item-name {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.table-item-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.table-item.active .table-item-meta {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* 右侧表详情 */
+.table-details {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-card);
+}
+
+/* 欢迎屏幕 */
+.welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+
+.welcome-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.welcome-screen h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* Tab导航 */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 20px;
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.tab-btn {
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    margin-bottom: -1px;
+}
+
+.tab-btn:hover {
+    color: var(--accent-color);
+}
+
+.tab-btn.active {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+}
+
+.tab-content {
+    display: none;
+    padding: 20px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 表头信息 */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-header h3 {
+    font-size: 20px;
+    font-family: Monaco, monospace;
+}
+
+.table-meta {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* 列表格 */
+.columns-table-container,
+.data-table-container {
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.columns-table,
+.indexes-table,
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.columns-table thead,
+.indexes-table thead,
+.data-table thead {
+    background: var(--bg-hover);
+}
+
+.columns-table th,
+.indexes-table th,
+.data-table th {
+    padding: 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.columns-table td,
+.indexes-table td,
+.data-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid #f0f0f0;
+    font-family: Monaco, monospace;
+}
+
+.columns-table tbody tr:hover,
+.indexes-table tbody tr:hover,
+.data-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.key-badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.key-badge.primary {
+    background: #ffd700;
+    color: #333;
+}
+
+.key-badge.unique {
+    background: #52c41a;
+    color: white;
+}
+
+.nullable-yes {
+    color: var(--success-color);
+}
+
+.nullable-no {
+    color: var(--error-color);
+    font-weight: 600;
+}
+
+/* 索引区域 */
+.indexes-section {
+    margin-top: 30px;
+}
+
+.indexes-section h4 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+}
+
+/* 数据工具栏 */
+.data-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.toolbar-left {
+    display: flex;
+    gap: 10px;
+}
+
+.toolbar-left select {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.export-btn {
+    padding: 6px 16px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 分页 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.pagination button {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.pagination button:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination .page-info {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* SQL控制台 */
+.sql-console {
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.console-header h3 {
+    font-size: 14px;
+}
+
+.toggle-console {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.console-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border-color);
+    overflow: hidden;
+}
+
+.console-content.collapsed {
+    display: none;
+}
+
+.sql-editor,
+.sql-result {
+    background: var(--bg-card);
+    padding: 16px;
+    overflow-y: auto;
+}
+
+#sqlEditor {
+    width: 100%;
+    min-height: 150px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: Monaco, monospace;
+    font-size: 13px;
+    resize: vertical;
+}
+
+.editor-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+}
+
+.execute-btn,
+.clear-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.execute-btn {
+    background: var(--accent-color);
+    color: white;
+}
+
+.clear-btn {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+}
+
+.result-placeholder {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 40px;
+}
+
+/* 加载状态 */
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+}
+
+/* 信息网格 */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.info-item {
+    padding: 16px;
+    background: var(--bg-hover);
+    border-radius: 4px;
+}
+
+.info-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.info-value {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .db-content {
+        flex-direction: column;
+    }
+    
+    .tables-sidebar {
+        width: 100%;
+        height: 200px;
+    }
+    
+    .console-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-hover);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+

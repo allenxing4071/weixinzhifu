@@ -93,20 +93,14 @@ function openModule(moduleName) {
         'api': './docs/02-技术实现/API接口文档.md',
         'settings': `${CONFIG.ADMIN_URL}#/settings`,
         'swagger': './docs-swagger.html',  // 打开官方Swagger UI文档
-        'database': '#database',
+        'database': './database-viewer.html',
         'adminer': 'https://www.adminer.org/'
     };
     
     const url = moduleUrls[moduleName];
     if (url) {
-        if (moduleName === 'database') {
-            // 滚动到数据库管理区域
-            document.querySelector('.database-detail-section').scrollIntoView({ behavior: 'smooth' });
-            showNotification('已定位到数据库管理区域', 'success');
-        } else {
-            window.open(url, '_blank');
-            showNotification(`正在打开 ${getModuleName(moduleName)}...`, 'info');
-        }
+        window.open(url, '_blank');
+        showNotification(`正在打开 ${getModuleName(moduleName)}...`, 'info');
     }
 }
 

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库管理 - 微信支付积分系统</title>
+    <link rel="stylesheet" href="database-viewer.css">
+</head>
+<body>
+    <div class="db-container">
+        <!-- 头部 -->
+        <header class="db-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🗄️ 数据库管理</h1>
+                    <div class="db-info">
+                        <span class="db-name" id="dbName">weixin_payment</span>
+                        <span class="db-badge mysql">MySQL 8.0</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="refresh-btn" onclick="refreshAll()">
+                        <span class="icon">🔄</span>
+                        刷新
+                    </button>
+                    <button class="back-btn" onclick="window.location.href='dashboard.html'">
+                        <span class="icon">←</span>
+                        返回控制台
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span class="stat-label">数据表</span>
+                    <span class="stat-value" id="tableCount">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">总记录数</span>
+                    <span class="stat-value" id="totalRows">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">数据库大小</span>
+                    <span class="stat-value" id="dbSize">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">最后更新</span>
+                    <span class="stat-value" id="lastUpdate">-</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="db-content">
+            <!-- 左侧：表列表 -->
+            <aside class="tables-sidebar">
+                <div class="sidebar-header">
+                    <h3>数据表列表</h3>
+                    <input type="text" id="tableSearch" placeholder="搜索表名..." class="search-input">
+                </div>
+                <div class="tables-list" id="tablesList">
+                    <!-- 动态加载 -->
+                    <div class="loading">加载中...</div>
+                </div>
+            </aside>
+
+            <!-- 右侧：表详情 -->
+            <main class="table-details">
+                <!-- 欢迎页 -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon">🗄️</div>
+                    <h2>选择一个数据表</h2>
+                    <p>从左侧列表中选择要查看的表</p>
+                </div>
+
+                <!-- 表详情 -->
+                <div class="table-view" id="tableView" style="display: none;">
+                    <!-- Tab导航 -->
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="structure">
+                            📋 表结构
+                        </button>
+                        <button class="tab-btn" data-tab="data">
+                            📊 数据浏览
+                        </button>
+                        <button class="tab-btn" data-tab="info">
+                            ℹ️ 表信息
+                        </button>
+                    </div>
+
+                    <!-- Tab内容 -->
+                    <div class="tab-content active" id="structureTab">
+                        <div class="table-header">
+                            <h3 id="currentTableName">-</h3>
+                            <div class="table-meta">
+                                <span id="tableRowCount">0 rows</span>
+                                <span id="tableSize">0 KB</span>
+                            </div>
+                        </div>
+
+                        <div class="columns-table-container">
+                            <table class="columns-table" id="columnsTable">
+                                <thead>
+                                    <tr>
+                                        <th>字段名</th>
+                                        <th>类型</th>
+                                        <th>可空</th>
+                                        <th>键</th>
+                                        <th>默认值</th>
+                                        <th>额外</th>
+                                        <th>注释</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- 动态加载 -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="indexes-section">
+                            <h4>索引</h4>
+                            <table class="indexes-table" id="indexesTable">
+                                <thead>
+                                    <tr>
+                                        <th>索引名</th>
+                                        <th>列名</th>
+                                        <th>唯一</th>
+                                        <th>类型</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- 动态加载 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="dataTab">
+                        <div class="data-toolbar">
+                            <div class="toolbar-left">
+                                <select id="pageSizeSelect" onchange="changePageSize()">
+                                    <option value="10">10 / 页</option>
+                                    <option value="20" selected>20 / 页</option>
+                                    <option value="50">50 / 页</option>
+                                    <option value="100">100 / 页</option>
+                                </select>
+                                <select id="sortColumnSelect" onchange="changeSorting()">
+                                    <option value="">排序字段</option>
+                                </select>
+                                <select id="sortOrderSelect" onchange="changeSorting()">
+                                    <option value="DESC">降序</option>
+                                    <option value="ASC">升序</option>
+                                </select>
+                            </div>
+                            <div class="toolbar-right">
+                                <button class="export-btn" onclick="exportData()">
+                                    <span class="icon">📥</span>
+                                    导出
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="data-table-container">
+                            <table class="data-table" id="dataTable">
+                                <thead id="dataTableHead">
+                                    <!-- 动态加载 -->
+                                </thead>
+                                <tbody id="dataTableBody">
+                                    <!-- 动态加载 -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="pagination" id="pagination">
+                            <!-- 动态加载 -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="infoTab">
+                        <div class="info-grid" id="tableInfo">
+                            <!-- 动态加载 -->
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- SQL查询控制台 -->
+        <div class="sql-console" id="sqlConsole">
+            <div class="console-header">
+                <h3>SQL查询控制台</h3>
+                <button class="toggle-console" onclick="toggleConsole()">
+                    <span id="consoleToggleIcon">▼</span>
+                </button>
+            </div>
+            <div class="console-content" id="consoleContent">
+                <div class="sql-editor">
+                    <textarea id="sqlEditor" placeholder="输入SQL查询 (仅支持SELECT、SHOW、DESCRIBE)&#10;例如: SELECT * FROM users LIMIT 10"></textarea>
+                    <div class="editor-actions">
+                        <button class="execute-btn" onclick="executeSQL()">
+                            <span class="icon">▶</span>
+                            执行
+                        </button>
+                        <button class="clear-btn" onclick="clearSQL()">清空</button>
+                    </div>
+                </div>
+                <div class="sql-result" id="sqlResult">
+                    <div class="result-placeholder">查询结果将显示在这里</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="database-viewer.js"></script>
+</body>
+</html>
+
