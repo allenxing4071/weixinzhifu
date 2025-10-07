@@ -16,7 +16,7 @@ fi
 # 检查是否安装了Python3
 if command -v python3 &> /dev/null; then
     echo "✅ 使用 Python3 启动HTTP服务器"
-    echo "📡 访问地址: http://localhost:$PORT/dashboard.html"
+    echo "📡 访问地址: http://localhost:$PORT/static/dashboard/dashboard.html"
     echo ""
     echo "按 Ctrl+C 停止服务器"
     echo "======================================"
@@ -24,7 +24,7 @@ if command -v python3 &> /dev/null; then
     python3 -m http.server $PORT
 elif command -v python &> /dev/null; then
     echo "✅ 使用 Python 启动HTTP服务器"
-    echo "📡 访问地址: http://localhost:$PORT/dashboard.html"
+    echo "📡 访问地址: http://localhost:$PORT/static/dashboard/dashboard.html"
     echo ""
     echo "按 Ctrl+C 停止服务器"
     echo "======================================"
@@ -32,7 +32,7 @@ elif command -v python &> /dev/null; then
     python -m SimpleHTTPServer $PORT
 elif command -v npx &> /dev/null; then
     echo "✅ 使用 Node.js http-server 启动"
-    echo "📡 访问地址: http://localhost:$PORT/dashboard.html"
+    echo "📡 访问地址: http://localhost:$PORT/static/dashboard/dashboard.html"
     echo ""
     echo "按 Ctrl+C 停止服务器"
     echo "======================================"

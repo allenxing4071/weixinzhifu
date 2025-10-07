@@ -50,7 +50,7 @@
 
 ```bash
 # 一键启动控制台
-./start-dashboard.sh
+./scripts/start/start-dashboard.sh
 # 访问: http://localhost:8080/dashboard.html
 ```
 
@@ -61,7 +61,7 @@
 - ⌨️ 常用命令速查
 - ⚡ 快捷操作按钮
 
-详见: [开发者控制台快速开始](./QUICK_START_DASHBOARD.md)
+详见: [开发者控制台快速开始](./docs/06-系统组件/QUICK_START_DASHBOARD.md)
 
 ---
 
@@ -156,7 +156,7 @@ weixinzhifu/
 │   ├── dashboard.html                    # ⭐ 控制台主页面
 │   ├── dashboard.css                     # 样式文件
 │   ├── dashboard.js                      # 交互脚本
-│   ├── start-dashboard.sh                # 一键启动脚本
+│   ├── scripts/start/start-dashboard.sh   # 一键启动脚本
 │   ├── DASHBOARD_README.md               # 功能说明
 │   ├── DASHBOARD_IMPLEMENTATION.md       # 实施总结
 │   └── QUICK_START_DASHBOARD.md          # 快速开始
@@ -243,7 +243,7 @@ weixinzhifu/
 
 | 文档类型 | 路径 | 说明 |
 |---------|------|------|
-| **🎯 控制台快速开始** | `QUICK_START_DASHBOARD.md` | ⭐ 开发者控制台5秒启动（NEW!） |
+| **🎯 控制台快速开始** | `docs/06-系统组件/QUICK_START_DASHBOARD.md` | ⭐ 开发者控制台5秒启动（NEW!） |
 | **🎯 控制台使用指南** | `docs/05-操作手册/开发者控制台使用指南.md` | 详细功能说明和使用技巧 |
 | **项目总览** | `docs/00-项目总览.md` | ⭐ 快速了解项目（必读） |
 | **需求与设计** | `docs/01-需求与设计/` | 产品需求、API接口、架构设计 |

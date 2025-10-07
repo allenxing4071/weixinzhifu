@@ -12,6 +12,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "http-proxy-middleware": "^3.0.5",
+    "mcp-chrome-bridge": "^1.0.29",
     "mysql2": "^3.15.1",
     "react-router-dom": "^7.9.1"
   },
